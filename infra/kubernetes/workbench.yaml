@@ -1,0 +1,137 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: madmallard-business
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: accessibility
+  namespace: madmallard-business
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: accessibility-data
+  namespace: madmallard-business
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: gp3
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: accessibility
+  namespace: madmallard-business
+spec:
+  serviceName: accessibility
+  replicas: 1
+  selector:
+    matchLabels:
+      app: accessibility
+  template:
+    metadata:
+      labels:
+        app: accessibility
+    spec:
+      serviceAccountName: accessibility
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 75
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: REPLACE_ECR_IMAGE_WITH_IMMUTABLE_TAG
+          ports:
+            - containerPort: 8080
+          env:
+            - name: API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: accessibility
+                  key: API_TOKEN
+            - name: ALLOWED_ORIGINS
+              valueFrom:
+                secretKeyRef:
+                  name: accessibility
+                  key: ALLOWED_ORIGINS
+            - name: DB_PATH
+              value: /app/data/audits.sqlite
+          resources:
+            requests: {cpu: 500m, memory: 1Gi}
+            limits: {cpu: '1', memory: 2Gi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          startupProbe:
+            httpGet: {path: /healthz, port: 8080}
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet: {path: /healthz, port: 8080}
+          livenessProbe:
+            httpGet: {path: /healthz, port: 8080}
+          volumeMounts:
+            - {name: data, mountPath: /app/data}
+            - {name: scratch, mountPath: /tmp}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: accessibility-data
+        - name: scratch
+          emptyDir:
+            sizeLimit: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: accessibility
+  namespace: madmallard-business
+spec:
+  type: ClusterIP
+  selector:
+    app: accessibility
+  ports:
+    - {port: 8080, targetPort: 8080}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: accessibility
+  namespace: madmallard-business
+spec:
+  podSelector:
+    matchLabels:
+      app: accessibility
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector: {}
+      ports:
+        - {protocol: TCP, port: 8080}
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - {protocol: UDP, port: 53}
+        - {protocol: TCP, port: 53}
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16, 127.0.0.0/8, 100.64.0.0/10, 0.0.0.0/8, 224.0.0.0/4, 240.0.0.0/4]
+      ports:
+        - {protocol: TCP, port: 443}
+        - {protocol: TCP, port: 80}
