@@ -9,5 +9,5 @@ COPY public ./public
 RUN mkdir data && chown -R app:app /app
 USER 10001:10001
 EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=5s CMD node -e "fetch('http://127.0.0.1:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+HEALTHCHECK --start-period=45s --interval=30s --timeout=5s CMD node -e "fetch('http://127.0.0.1:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node","src/server.js"]
