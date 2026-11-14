@@ -30,3 +30,5 @@ The user explicitly authorized unrestricted domain selection and local-container
 Use **Delete audit** next to a completed/failed audit, or **Clear all history** to erase every stored record. Both ask for confirmation; deletion removes associated review notes and cannot be undone. Running scans cannot be deleted or cleared. Clearing stored data does not remove reports previously downloaded to your computer.
 
 Local examples on Greg's Mac: Tickets `http://localhost:8016/`, MyPillar `http://localhost:8017/`, VideoShare `http://localhost:8010/`, SolarPower `http://localhost:8015/`, and Madmallards Code `http://localhost:8096/`. Only scan pages you own or have permission to test. Login-required pages need separate future authentication support; scanning a login URL audits that page, not the protected app behind it.
+
+**Review interface:** Review opens a focused, scrollable modal rather than adding content beneath the history. Use Close review or Escape to return to the selected audit; save/error feedback stays inside the modal. The modal fits mobile screens and keeps its close control visible while scrolling.
