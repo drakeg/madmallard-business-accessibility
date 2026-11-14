@@ -25,6 +25,10 @@ const server=http.createServer(async(req,res)=>{
  if(req.method==='GET'&&files[u.pathname]){res.writeHead(200,{'Content-Type':u.pathname.endsWith('.js')?'text/javascript':u.pathname.endsWith('.css')?'text/css':u.pathname==='/third-party-notices'?'text/plain; charset=utf-8':'text/html','Cache-Control':'no-store'});return res.end(await readFile(new URL('../public/'+files[u.pathname],import.meta.url)));}
  if(!authorized(req))return send(res,401,{error:'Authentication required'});
  if(req.method==='GET'&&u.pathname==='/api/audits')return send(res,200,{audits:store.list(),allowedOrigins:origins,localTesting});
+ if(req.method==='DELETE'&&u.pathname==='/api/audits'){
+  if(busy)return send(res,409,{error:'Wait for the running scan before clearing history'});
+  const result=store.db.prepare('DELETE FROM audits').run();return send(res,200,{deleted:Number(result.changes)});
+ }
  if(req.method==='POST'&&u.pathname==='/api/audits'){
   if(busy)return send(res,409,{error:'A scan is already running; retry when complete'});
   const b=await body(req);if(b.permissionConfirmed!==true)throw new Error('Confirm site-owner permission');
