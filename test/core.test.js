@@ -25,3 +25,13 @@ test('comparison detects removed and introduced findings and rejects different p
 test('audit records and review evidence survive reopening',()=>{
  const dir=mkdtempSync(tmpdir()+'/audit-');let store=new Store(dir+'/db');const saved=store.save({state:'complete',findings:[{status:'fixed',note:'Verified label'}]});store.close();store=new Store(dir+'/db');assert.deepEqual(store.get(saved.id),saved);assert.equal(store.list().length,1);store.close();rmSync(dir,{recursive:true});
 });
+
+test('unrestricted domains remain public-only unless local testing is explicit',async()=>{
+ assert.equal(parseTarget('https://another.example/',[]).hostname,'another.example');
+ assert.throws(()=>parseTarget('http://host.docker.internal:8016/',[]));
+ const options={localTesting:true};
+ await validateTarget('http://host.docker.internal:8016/',[],async()=>[{address:'192.168.65.254'}],options);
+ await assert.rejects(validateTarget('http://host.docker.internal/',[],async()=>[{address:'192.168.65.254'}]));
+ await assert.rejects(validateTarget('http://169.254.169.254/',[],undefined,options));
+ await assert.rejects(validateTarget('http://[fd00:ec2::254]/',[],undefined,options));
+});

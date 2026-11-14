@@ -6,6 +6,7 @@ import {scan} from './scanner.js';
 import {compare,parseTarget} from './policy.js';
 const token=process.env.API_TOKEN;
 if(!token||token.length<32) throw new Error('Set API_TOKEN to at least 32 characters');
+const localTesting=process.env.LOCAL_TESTING==='true';
 const origins=(process.env.ALLOWED_ORIGINS||'').split(',').map(x=>x.trim()).filter(Boolean);
 for(const origin of origins) if(new URL(origin).origin!==origin) throw new Error('ALLOWED_ORIGINS must contain exact URL origins');
 const store=new Store(process.env.DB_PATH||'data/audits.sqlite');
@@ -20,16 +21,18 @@ const server=http.createServer(async(req,res)=>{
  try {
  const u=new URL(req.url,'http://localhost');
  if(req.method==='GET'&&u.pathname==='/healthz')return send(res,200,{status:'ok'});
- const files={'/':'index.html','/app.js':'app.js','/style.css':'style.css'};
- if(req.method==='GET'&&files[u.pathname]){res.writeHead(200,{'Content-Type':u.pathname.endsWith('.js')?'text/javascript':u.pathname.endsWith('.css')?'text/css':'text/html','Cache-Control':'no-store'});return res.end(await readFile(new URL('../public/'+files[u.pathname],import.meta.url)));}
+ const files={'/':'index.html','/app.js':'app.js','/style.css':'style.css','/third-party-notices':'third-party-notices.txt'};
+ if(req.method==='GET'&&files[u.pathname]){res.writeHead(200,{'Content-Type':u.pathname.endsWith('.js')?'text/javascript':u.pathname.endsWith('.css')?'text/css':u.pathname==='/third-party-notices'?'text/plain; charset=utf-8':'text/html','Cache-Control':'no-store'});return res.end(await readFile(new URL('../public/'+files[u.pathname],import.meta.url)));}
  if(!authorized(req))return send(res,401,{error:'Authentication required'});
- if(req.method==='GET'&&u.pathname==='/api/audits')return send(res,200,{audits:store.list(),allowedOrigins:origins});
+ if(req.method==='GET'&&u.pathname==='/api/audits')return send(res,200,{audits:store.list(),allowedOrigins:origins,localTesting});
  if(req.method==='POST'&&u.pathname==='/api/audits'){
   if(busy)return send(res,409,{error:'A scan is already running; retry when complete'});
   const b=await body(req);if(b.permissionConfirmed!==true)throw new Error('Confirm site-owner permission');
-  const url=parseTarget(b.url,origins).href;
+  let target=new URL(b.url);
+  if(localTesting&&['127.0.0.1','[::1]'].includes(target.hostname))target.hostname='localhost';
+  const url=parseTarget(target.href,origins,{localTesting}).href;
   busy=true;const a=store.save({url,state:'running',createdAt:new Date().toISOString()});send(res,202,a);
-  scan(url,origins).then(result=>store.save({...result,id:a.id,state:'complete'})).catch(e=>store.save({...a,state:'failed',error:e.message})).finally(()=>{busy=false;});return;
+  scan(url,origins,{localTesting}).then(result=>store.save({...result,id:a.id,state:'complete'})).catch(e=>store.save({...a,state:'failed',error:e.message})).finally(()=>{busy=false;});return;
  }
  const match=u.pathname.match(/^\/api\/audits\/([a-f0-9-]+)(\/export)?$/);
  if(match){const a=store.get(match[1]);if(!a)return send(res,404,{error:'Audit not found'});

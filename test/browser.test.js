@@ -25,3 +25,12 @@ test('browser UI loads an audit and saves a reviewed finding',{skip:!executableP
  const db=new Store(dir+'/db');assert.equal(db.list()[0].findings[0].status,'fixed');db.close();
  }finally{if(browser)await browser.close();child.kill('SIGTERM');await once(child,'exit');rmSync(dir,{recursive:true});}
 });
+
+test('empty audit history gives visible connection feedback and attribution',{skip:!executablePath&&!existsSync(chromium.executablePath())?'No installed Chromium; set CHROMIUM_PATH':false},async()=>{
+ const browser=await chromium.launch({executablePath,headless:true});
+ try{const context=await browser.newContext();const page=await context.newPage();page.setDefaultTimeout(10000);
+ const {readFileSync}=await import('node:fs');
+ await page.route('http://workbench.test/**',route=>{const path=new URL(route.request().url()).pathname;if(path==='/api/audits')return route.fulfill({json:{audits:[],allowedOrigins:[],localTesting:true}});return route.fulfill({contentType:path==='/app.js'?'text/javascript':path==='/style.css'?'text/css':'text/html',body:readFileSync('public/'+(path==='/'?'index.html':path.slice(1)),'utf8')});});
+ await page.goto('http://workbench.test/');await page.getByRole('button',{name:'Load audits'}).click();await page.getByText('Paste your operator token first.').waitFor();await page.getByLabel('Operator token').fill('test-token');await page.getByRole('button',{name:'Load audits'}).click();await page.getByText('Connected. 0 audit(s) loaded.').waitFor();await page.getByText('No audits yet.',{exact:false}).waitFor();assert.equal(await page.locator('footer a[href="https://github.com/dequelabs/axe-core"]').count(),1);assert.equal(await page.locator('footer a[href="https://github.com/microsoft/playwright"]').count(),1);
+ }finally{await browser.close();}
+});

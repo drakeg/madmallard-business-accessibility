@@ -3,17 +3,18 @@ import ipaddr from 'ipaddr.js';
 export function publicAddress(address) {
  try {let ip=ipaddr.parse(address);if(ip.kind()==='ipv6' && ip.isIPv4MappedAddress()) ip=ip.toIPv4Address();return ip.range()==='unicast';}catch{return false;}
 }
-export function parseTarget(input, origins) {
+export function parseTarget(input, origins, {localTesting=false}={}) {
  const u=new URL(input);
  if(!['http:','https:'].includes(u.protocol)||u.username||u.password||u.hash) throw new Error('Use HTTP(S) without credentials or fragments');
- if(!origins.includes(u.origin)) throw new Error('Target origin is not approved by the operator');
- if(u.port && !['80','443'].includes(u.port)) throw new Error('Only standard web ports are allowed');
+ if(origins.length && !origins.includes(u.origin)) throw new Error('Target origin is not approved by the operator');
+ if(!localTesting && u.port && !['80','443'].includes(u.port)) throw new Error('Only standard web ports are allowed');
  return u;
 }
-export async function validateTarget(input,origins,lookup=dns.lookup){
- const u=parseTarget(input,origins);const host=u.hostname.replace(/^\[|\]$/g,'');
+export async function validateTarget(input,origins,lookup=dns.lookup,options={}){
+ const u=parseTarget(input,origins,options);const host=u.hostname.replace(/^\[|\]$/g,'');
  const addresses=ipaddr.isValid(host)?[{address:host}]:await lookup(host,{all:true});
- if(!addresses.length||addresses.some(x=>!publicAddress(x.address))) throw new Error('Private, reserved, or local network targets are blocked');
+ const allowed=address=>{if(publicAddress(address))return true;if(!options.localTesting)return false;let ip=ipaddr.parse(address);if(ip.kind()==='ipv6'&&ip.isIPv4MappedAddress())ip=ip.toIPv4Address();if(ip.toString()==='fd00:ec2::254')return false;return ['private','loopback','uniqueLocal'].includes(ip.range());};
+ if(!addresses.length||addresses.some(x=>!allowed(x.address))) throw new Error('Private, reserved, or local network targets are blocked');
  return u;
 }
 export function compare(before,after) {
