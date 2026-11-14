@@ -29,11 +29,17 @@ test('browser UI loads an audit and saves a reviewed finding',{skip:!executableP
  }finally{if(browser)await browser.close();child.kill('SIGTERM');await once(child,'exit');rmSync(dir,{recursive:true});}
 });
 
-test('empty audit history gives visible connection feedback and attribution',{skip:!executablePath&&!existsSync(chromium.executablePath())?'No installed Chromium; set CHROMIUM_PATH':false},async()=>{
+test('empty history, remembered sign-in and attribution work in the browser',{skip:!executablePath&&!existsSync(chromium.executablePath())?'No installed Chromium; set CHROMIUM_PATH':false},async()=>{
  const browser=await chromium.launch({executablePath,headless:true});
  try{const context=await browser.newContext();const page=await context.newPage();page.setDefaultTimeout(10000);
  const {readFileSync}=await import('node:fs');
- await page.route('http://workbench.test/**',route=>{const path=new URL(route.request().url()).pathname;if(path==='/api/audits')return route.fulfill({json:{audits:[],allowedOrigins:[],localTesting:true}});return route.fulfill({contentType:path==='/app.js'?'text/javascript':path==='/style.css'?'text/css':'text/html',body:readFileSync('public/'+(path==='/'?'index.html':path.slice(1)),'utf8')});});
+ await context.route('http://workbench.test/**',route=>{const path=new URL(route.request().url()).pathname;if(path==='/api/audits')return route.fulfill({json:{audits:[],allowedOrigins:[],localTesting:true}});return route.fulfill({contentType:path==='/app.js'?'text/javascript':path==='/style.css'?'text/css':'text/html',body:readFileSync('public/'+(path==='/'?'index.html':path.slice(1)),'utf8')});});
  await page.goto('http://workbench.test/');await page.getByRole('button',{name:'Load audits'}).click();await page.getByText('Paste your operator token first.').waitFor();await page.getByLabel('Operator token').fill('test-token');await page.getByRole('button',{name:'Load audits'}).click();await page.getByText('Connected. 0 audit(s) loaded.').waitFor();await page.getByText('No audits yet.',{exact:false}).waitFor();assert.equal(await page.locator('footer a[href="https://github.com/dequelabs/axe-core"]').count(),1);assert.equal(await page.locator('footer a[href="https://github.com/microsoft/playwright"]').count(),1);
+ const key='madmallard.accessibility.operator';assert.ok(await page.evaluate(k=>sessionStorage.getItem(k),key));await page.reload();await page.getByText('Sign-in remembered in this tab.',{exact:false}).waitFor();
+ await page.getByLabel('Remember sign-in').selectOption('none');await page.getByRole('button',{name:'Load audits'}).click();await page.getByText('Connected. 0 audit(s) loaded.',{exact:true}).waitFor();await page.reload();assert.equal(await page.getByLabel('Operator token',{exact:true}).inputValue(),'');
+ await page.getByLabel('Operator token',{exact:true}).fill('test-token');await page.getByLabel('Remember sign-in').selectOption('browser');await page.getByRole('button',{name:'Load audits'}).click();await page.getByText('Sign-in remembered for 7 days.',{exact:false}).waitFor();
+ const other=await context.newPage();await other.goto('http://workbench.test/');await other.getByText('Sign-in remembered for 7 days.',{exact:false}).waitFor();await other.getByRole('button',{name:'Forget token',exact:true}).click();assert.equal(await other.evaluate(k=>localStorage.getItem(k),key),null);assert.equal(await other.evaluate(k=>sessionStorage.getItem(k),key),null);await other.reload();assert.equal(await other.getByLabel('Operator token',{exact:true}).inputValue(),'');
+ await other.evaluate(k=>localStorage.setItem(k,JSON.stringify({token:'expired-token',expiresAt:1})),key);await other.reload();assert.equal(await other.getByLabel('Operator token',{exact:true}).inputValue(),'');assert.equal(await other.evaluate(k=>localStorage.getItem(k),key),null);
+
  }finally{await browser.close();}
 });
