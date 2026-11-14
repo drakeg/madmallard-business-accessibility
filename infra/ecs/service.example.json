@@ -1,0 +1,12 @@
+{
+  "cluster": "REPLACE_CLUSTER",
+  "serviceName": "madmallard-business-accessibility",
+  "taskDefinition": "REPLACE_REGISTERED_TASK_ARN",
+  "desiredCount": 1,
+  "launchType": "FARGATE",
+  "platformVersion": "1.4.0",
+  "deploymentConfiguration": {"maximumPercent": 100, "minimumHealthyPercent": 0, "deploymentCircuitBreaker": {"enable": true, "rollback": true}},
+  "networkConfiguration": {"awsvpcConfiguration": {"subnets": ["REPLACE_PRIVATE_SUBNET"], "securityGroups": ["REPLACE_TASK_SECURITY_GROUP"], "assignPublicIp": "DISABLED"}},
+  "loadBalancers": [{"targetGroupArn": "REPLACE_IP_TARGET_GROUP_ARN", "containerName": "app", "containerPort": 8080}],
+  "enableECSManagedTags": true
+}
