@@ -13,7 +13,7 @@ Native development: Node 24 and Chromium; `npm ci`, set environment, then `node 
 | Administrator | All scans; create/review/delete, manage customer accounts, assign ownership |
 | Customer | View, export and compare only scans assigned to that account; read-only findings |
 
-**Profile, tokens & customers** opens `/profile`. Edit your display name or change your password. Under **API token**, confirm your password to save an existing token or generate a random one. Replacement immediately revokes the previous API token; it does not sign you out. Tokens are optional integrations credentials: the website automatically uses your authenticated account. Only token hashes are stored, so a token cannot be shown again later; generate a replacement if lost.
+**Profile & settings** opens `/profile`. Edit your display name or change your password. Under **API token**, confirm your password to save an existing token or generate a random one. Replacement immediately revokes the previous API token; it does not sign you out. Tokens are optional integrations credentials: the website automatically uses your authenticated account. Only token hashes are stored, so a token cannot be shown again later; generate a replacement if lost.
 
 Administrators create customer usernames and initial passwords on the profile page. No signup, invitation email or outreach occurs. On the workbench, choose **Scan owner** before starting a scan, or use **Assign owner** beside an existing completed/failed scan. Customers sign in at the same site address. Ownership is per account; customer organizations/shared teams are not implemented. Customers cannot request arbitrary scans or change/delete data. No customer data is exposed through another customer's API token or session.
 
@@ -38,3 +38,12 @@ Buyer: small agencies maintaining local-business sites. Offer: audit three agree
 Hub: https://github.com/drakeg/madmallard-ai-operations . Shared topic `madmallard-business`; separate private repositories use `madmallard-business-<offering>`.
 
 Footer credits Deque's axe-core and @axe-core/playwright (MPL-2.0) and Microsoft Playwright (Apache-2.0). ipaddr.js is MIT. Full bundled licenses/notices are in `THIRD_PARTY_NOTICES.txt` and `/third-party-notices`. Chromium/Debian packages retain their own notices; audit redistribution obligations before distributing images. Private project source remains all rights reserved pending the owner's license decision. No Corey Ganim or customer content is republished. Dependencies permit commercial use subject to their license obligations.
+
+## Dashboard, ownership and on-page SEO
+The start page includes recent-audit totals, completed/failed counts, distinct pages, unresolved accessibility instances, SEO review counts and coverage, a seven-day activity chart, and impact bars. Metrics use loaded history only (up to 100 records); latest-page metrics use the newest completed audit per URL. They are not compliance or ranking scores. Search and status filters narrow the history list; each row shows its current owner and timestamp.
+
+**Assign owner** opens a dedicated modal showing the current owner and a new-owner selector. Save is enabled only for a change; success and errors are shown in that modal, and the history owner updates immediately. It does not depend on the separate new-scan owner setting.
+
+New audits include on-page SEO findings in Review and exported JSON. Older audits show that SEO data is unavailable until a new scan. See [SEO scope and OpenSEO assessment](docs/SEO.md). OpenSEO is MIT-licensed, but its provider-backed data workflows incur usage costs and its crawler does not support private targets. It remains an optional future integration; no paid service or OpenSEO runtime was activated.
+
+If no other account exists, Assign owner explains that there is nobody to share with and links to customer creation in Profile & settings. It never silently assigns a scan back to the same account.
