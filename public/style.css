@@ -8,3 +8,5 @@ body.review-open{overflow:hidden}
 .review-toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;position:sticky;top:0;background:#f0f5f4;border-bottom:1px solid #cbdad6;z-index:1;padding:.8rem 0}
 .review-toolbar h2{margin:0}.review-toolbar button{flex-shrink:0}#review-message{font-weight:600}#summary{overflow-wrap:anywhere}#details{margin-bottom:0}
 @media(max-width:600px){#review-dialog{width:calc(100vw - 1rem);max-height:92vh;max-height:92dvh;padding:0 .75rem .75rem}#details{padding:1rem}.review-toolbar{gap:.5rem}}
+
+.header-link{color:white}button:disabled{opacity:.55;cursor:default}section a{display:inline-block;margin:.5rem 1rem .5rem 0}#account-message{font-weight:600}
