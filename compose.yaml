@@ -7,6 +7,7 @@ services:
       API_TOKEN: ${API_TOKEN:?Set a random token of at least 32 characters}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
       DB_PATH: /app/data/audits.sqlite
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
       LOCAL_TESTING: ${LOCAL_TESTING:-false}
     volumes:
       - audits:/app/data

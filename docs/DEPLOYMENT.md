@@ -28,3 +28,6 @@ Docker, AWS registration, cluster dry-run and live-cloud tests remain operator r
 
 ## Local testing update — November 14, 2026
 For the Mac-only testing instance, `ALLOWED_ORIGINS` is empty and `LOCAL_TESTING=true`. Use localhost with the published target port, for example http://localhost:8016/. Chromium resolves localhost to the Docker Desktop host gateway, preserving the Host header accepted by development servers. Keep the workbench bound to loopback and local mode disabled in shared/cloud deployments. IPv4 link-local and the AWS IPv6 metadata address remain blocked.
+
+## Account upgrade
+`API_TOKEN` now authorizes first-admin setup; after setup, website access uses username/password sessions and optional per-user API keys. Keep the users/sessions/audits database on the persistent volume. Set `COOKIE_SECURE=true` with a dedicated HTTPS hostname before a customer deployment; preserve Host and reject untrusted forwarding headers. Current loopback development uses COOKIE_SECURE=false. Existing audits are migrated to the first administrator, not a customer account. See ACCOUNTS.md for isolation tests and release limitations.
