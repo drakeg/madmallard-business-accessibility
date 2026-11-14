@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {once} from 'node:events';
 import {Store} from '../src/store.js';
 test('API protects records, enforces consent and persists review/export',async()=>{
- const dir=mkdtempSync(tmpdir()+'/audit-api-');const s=new Store(dir+'/db');const a=s.save({state:'complete',url:'https://example.com/',findings:[{id:'label',target:['input'],status:'open',note:''}],manual:{keyboard:'not-tested'}});s.close();
+ const dir=mkdtempSync(tmpdir()+'/audit-api-');const s=new Store(dir+'/db');const a=s.save({state:'complete',url:'https://example.com/',findings:[{id:'label',target:['input'],status:'open',note:''}],manual:{keyboard:'not-tested'}});s.save({state:'failed',url:'https://example.com/second',error:'Synthetic test record'});s.close();
  const token='test-token-'.repeat(5);const port=19000+Math.floor(Math.random()*10000);const child=spawn(process.execPath,['src/server.js'],{env:{...process.env,API_TOKEN:token,ALLOWED_ORIGINS:'https://example.com',DB_PATH:dir+'/db',PORT:String(port),HOST:'127.0.0.1'},stdio:'pipe'});
  const base=`http://127.0.0.1:${port}`;const request=(path,options={})=>fetch(base+path,{...options,headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json',...options.headers}});
  try{
@@ -18,5 +18,6 @@ test('API protects records, enforces consent and persists review/export',async()
  assert.equal((await request(`/api/audits/${a.id}`,{method:'PATCH',body:JSON.stringify({findingIndex:0,status:'fixed',note:'Label applied; keyboard review completed'})})).status,200);
  const exported=await(await request(`/api/audits/${a.id}/export`)).json();assert.equal(exported.findings[0].status,'fixed');assert.match(exported.findings[0].note,/Label applied/);
  assert.equal((await request(`/api/audits/${a.id}`,{method:'DELETE'})).status,200);assert.equal((await request(`/api/audits/${a.id}`)).status,404);
+ const cleared=await request('/api/audits',{method:'DELETE'});assert.equal(cleared.status,200);assert.equal((await cleared.json()).deleted,1);
  }finally{child.kill('SIGTERM');await once(child,'exit');rmSync(dir,{recursive:true});}
 });
