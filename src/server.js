@@ -3,13 +3,12 @@ import {readFile} from 'node:fs/promises';
 import {randomBytes} from 'node:crypto';
 import {enrichAudit,auditSummary} from './evidence.js';
 import {printableReport} from './report.js';
-import {generateReport} from 'lighthouse';
 import {Auth} from './auth.js';
 import {Store} from './store.js';
 import {scan} from './scanner.js';
 import {compare,parseTarget} from './policy.js';
 const token=process.env.API_TOKEN;
-if(!token||token.length<32) throw new Error('Set API_TOKEN to at least 32 characters');
+// API_TOKEN is optional for website operation; a configured secret is needed only for the initial administrator bootstrap in Docker.
 const localTesting=process.env.LOCAL_TESTING==='true';
 const origins=(process.env.ALLOWED_ORIGINS||'').split(',').map(x=>x.trim()).filter(Boolean);
 for(const origin of origins) if(new URL(origin).origin!==origin) throw new Error('ALLOWED_ORIGINS must contain exact URL origins');
@@ -39,7 +38,7 @@ const server=http.createServer(async(req,res)=>{
   let user;
   if(u.pathname.endsWith('/setup')){
    if(auth.count())return send(res,409,{error:'Administrator account already exists'});
-   const bootstrap=auth.identity({headers:{authorization:'Bearer '+String(b.bootstrapToken||'')}},token);if(!bootstrap)return send(res,401,{error:'Invalid setup token'});
+   if(!token||token.length<32)return send(res,503,{error:'Set API_TOKEN to a random 32+ character one-time administrator setup secret before creating the initial account'});const bootstrap=auth.identity({headers:{authorization:'Bearer '+String(b.bootstrapToken||'')}},token);if(!bootstrap)return send(res,401,{error:'Invalid setup token'});
    user=await auth.create({...b,role:'admin'});
    // Existing operator scans remain private to the first administrator.
    const rows=store.db.prepare('SELECT body FROM audits').all();for(const row of rows){const a=JSON.parse(row.body);if(!a.ownerId||a.ownerId==='legacy')store.save({...a,ownerId:user.id});}
@@ -92,7 +91,7 @@ const server=http.createServer(async(req,res)=>{
   if(req.method==='GET'){
    if(match[2]==='/report.html'||match[2]==='/lighthouse.html'){
     if(match[2]==='/lighthouse.html'&&(a.lighthouse?.state!=='complete'||!a.lighthouse.raw))return send(res,404,{error:'No complete Lighthouse report is available for this audit'});
-    const html=match[2]==='/report.html'?printableReport(a):generateReport(a.lighthouse.raw,'html');res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Content-Disposition':`attachment; filename="audit-${a.id}${match[2]==='/lighthouse.html'?'-lighthouse':''}.html"`,'Cache-Control':'no-store','Content-Security-Policy':"sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:"});return res.end(html);
+    const html=match[2]==='/report.html'?printableReport(a):(await import('lighthouse')).generateReport(a.lighthouse.raw,'html');res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Content-Disposition':`attachment; filename="audit-${a.id}${match[2]==='/lighthouse.html'?'-lighthouse':''}.html"`,'Cache-Control':'no-store','Content-Security-Policy':"sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:"});return res.end(html);
    }return send(res,200,enrichAudit(a));
   }
   if(req.method==='DELETE'){if(a.state==='running')throw new Error('Wait for the scan to finish before deleting');store.db.prepare('DELETE FROM audits WHERE id=?').run(a.id);return send(res,200,{deleted:true});}
