@@ -4,19 +4,24 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=24 <25"
+    "node": ">=24 <27"
   },
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test test/browser.test.js && node --test --test-concurrency=1 test/accounts.test.js test/api.test.js test/core.test.js test/dashboard.test.js test/reports.test.js test/html-validation.test.js",
-    "build:css": "tailwindcss -i assets/theme.css -o public/daisyui.css --minify"
+    "test": "node --test test/browser.test.js && node --test --test-concurrency=1 test/accounts.test.js test/api.test.js test/core.test.js test/dashboard.test.js test/reports.test.js test/html-validation.test.js test/cloud-runtime.test.js",
+    "build:css": "tailwindcss -i assets/theme.css -o public/daisyui.css --minify",
+    "test:vercel": "node --test test/cloud-runtime.test.js"
   },
   "dependencies": {
     "@axe-core/playwright": "4.14.0",
+    "@libsql/client": "0.18.0",
+    "@sparticuz/chromium": "153.0.0",
+    "@vercel/functions": "3.11.3",
     "html-validate": "11.21.1",
     "ipaddr.js": "2.2.0",
     "lighthouse": "13.6.0",
     "playwright": "1.65.1",
+    "postgres": "3.4.8",
     "puppeteer-core": "25.17.0"
   },
   "devDependencies": {

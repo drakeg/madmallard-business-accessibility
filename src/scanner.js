@@ -9,8 +9,10 @@ import {validateTarget} from './policy.js';
 async function baseScan(url,origins,options={}) {
  await validateTarget(url,origins,undefined,options);
  const args=['--disable-dev-shm-usage'];
+ let browserExecutable=process.env.CHROMIUM_PATH||undefined;
+ if(process.env.VERCEL){const {default:serverlessChromium}=await import('@sparticuz/chromium');browserExecutable=await serverlessChromium.executablePath();args.push(...serverlessChromium.args);}
  if(options.localTesting&&existsSync('/.dockerenv')){const gateway=await dns.lookup('host.docker.internal');args.push(`--host-resolver-rules=MAP localhost ${gateway.address}`);}
- const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||undefined,headless:true,args});
+ const browser=await chromium.launch({executablePath:browserExecutable,headless:true,args});
  const timeout=setTimeout(()=>browser.close().catch(()=>{}),60000);
  try {
  const context=await browser.newContext({serviceWorkers:'block',acceptDownloads:false});
