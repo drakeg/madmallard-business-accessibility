@@ -53,7 +53,7 @@ $('customer-form').onsubmit=async e=>{e.preventDefault();try{await api('/api/cus
    $('submit-login').textContent='Create administrator';
    $('password').minLength=12;$('password').maxLength=128;$('password').autocomplete='new-password';
    $('bootstrap-token').required=true;
-   if(!status.setupAvailable){$('submit-login').disabled=true;message('Administrator setup is not configured for this deployment. Set ADMIN_SETUP_TOKEN (32+ characters) for Preview and redeploy.','error');}
+   if(status.setupAvailable===false){$('submit-login').disabled=true;message('Administrator setup is not configured for this deployment. Set ADMIN_SETUP_TOKEN (32+ characters) for Preview and redeploy.','error');}
    else message('Database connected. Enter your account details and the one-time administrator setup secret.','success');
   }else{
    message('Database connected. Enter your username and password to sign in.','success');
