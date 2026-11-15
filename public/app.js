@@ -1,12 +1,12 @@
 import {summarizeAudits} from './dashboard.js';
 const $=x=>document.getElementById(x);let active=null,poll=null,reviewTrigger=null,currentUser=null,csrf=null;let audits=[],owners=[],assignment=null,assignmentTrigger=null;
 async function api(path,options={}){const r=await fetch(path,{signal:AbortSignal.timeout(15000),...options,headers:{'Content-Type':'application/json',...(csrf?{'X-CSRF-Token':csrf}:{})}});const data=await r.json();if(!r.ok){const error=new Error(data.error);error.status=r.status;throw error;}return data;}
-function element(tag,text,className){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(className)e.className=className;return e;}
+function element(tag,text,className){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;const ui={button:'btn btn-primary btn-sm',select:'select select-bordered',textarea:'textarea textarea-bordered'};e.className=[ui[tag],className].filter(Boolean).join(' ');if(tag==='button'&&className?.includes('secondary')){e.classList.remove('btn-primary');e.classList.add('btn-outline');}if(tag==='button'&&className?.includes('quiet')){e.classList.remove('btn-primary');e.classList.add('btn-ghost');}return e;}
 function message(t){const modal=$('review-dialog').open;$('message').textContent=modal?'':t;$('review-message').textContent=modal?t:'';}
 function closeReview(){if($('review-dialog').open)$('review-dialog').close();$('details').hidden=true;}
 function ownerName(id){return owners.find(u=>u.id===id)?.name||(id===currentUser?.id?currentUser.name:'Administrator');}
 function dateLabel(value){const d=new Date(value);return Number.isFinite(d.getTime())?new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(d):'Date unavailable';}
-function badge(text){return element('span',text,'badge '+text);}
+function badge(text){return element('span',text,'badge badge-soft '+text);}
 $('close-review').onclick=closeReview;
 $('review-dialog').addEventListener('close',()=>{document.body.classList.remove('review-open');(reviewTrigger?.isConnected?reviewTrigger:$('audit-history-title')).focus({preventScroll:true});});
 $('close-assign').onclick=()=>$('assign-dialog').close();
