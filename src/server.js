@@ -25,7 +25,7 @@ const server=http.createServer(async(req,res)=>{
  try {
  const u=new URL(req.url,'http://localhost');
  if(req.method==='GET'&&u.pathname==='/healthz')return send(res,200,{status:'ok'});
- const files={'/':'index.html','/app.js':'app.js','/style.css':'style.css','/third-party-notices':'third-party-notices.txt','/login':'account.html','/profile':'account.html','/account.js':'account.js'};
+ const files={'/':'index.html','/app.js':'app.js','/dashboard.js':'dashboard.js','/style.css':'style.css','/third-party-notices':'third-party-notices.txt','/login':'account.html','/profile':'account.html','/account.js':'account.js'};
  if(req.method==='GET'&&files[u.pathname]){res.writeHead(200,{'Content-Type':u.pathname.endsWith('.js')?'text/javascript':u.pathname.endsWith('.css')?'text/css':u.pathname==='/third-party-notices'?'text/plain; charset=utf-8':'text/html','Cache-Control':'no-store'});return res.end(await readFile(new URL('../public/'+files[u.pathname],import.meta.url)));}
  const sameOrigin=()=>!req.headers.origin||req.headers.origin===`${secureCookies?'https':'http'}://${req.headers.host}`;
  if(['POST','PUT','PATCH','DELETE'].includes(req.method)&&(!sameOrigin()||req.headers['sec-fetch-site']==='cross-site'))return send(res,403,{error:'Cross-site request blocked'});
