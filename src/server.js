@@ -1,6 +1,9 @@
 import http from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {randomBytes} from 'node:crypto';
+import {enrichAudit,auditSummary} from './evidence.js';
+import {printableReport} from './report.js';
+import {generateReport} from 'lighthouse';
 import {Auth} from './auth.js';
 import {Store} from './store.js';
 import {scan} from './scanner.js';
@@ -25,7 +28,7 @@ const server=http.createServer(async(req,res)=>{
  try {
  const u=new URL(req.url,'http://localhost');
  if(req.method==='GET'&&u.pathname==='/healthz')return send(res,200,{status:'ok'});
- const files={'/':'index.html','/app.js':'app.js','/dashboard.js':'dashboard.js','/style.css':'style.css','/daisyui.css':'daisyui.css','/third-party-notices':'third-party-notices.txt','/login':'account.html','/profile':'account.html','/account.js':'account.js'};
+ const files={'/':'index.html','/app.js':'app.js','/dashboard.js':'dashboard.js','/guidance.js':'guidance.js','/daisyui.css':'daisyui.css','/style.css':'style.css','/third-party-notices':'third-party-notices.txt','/login':'account.html','/profile':'account.html','/account.js':'account.js'};
  if(req.method==='GET'&&files[u.pathname]){res.writeHead(200,{'Content-Type':u.pathname.endsWith('.js')?'text/javascript':u.pathname.endsWith('.css')?'text/css':u.pathname==='/third-party-notices'?'text/plain; charset=utf-8':'text/html','Cache-Control':'no-store'});return res.end(await readFile(new URL('../public/'+files[u.pathname],import.meta.url)));}
  const sameOrigin=()=>!req.headers.origin||req.headers.origin===`${secureCookies?'https':'http'}://${req.headers.host}`;
  if(['POST','PUT','PATCH','DELETE'].includes(req.method)&&(!sameOrigin()||req.headers['sec-fetch-site']==='cross-site'))return send(res,403,{error:'Cross-site request blocked'});
@@ -68,7 +71,7 @@ const server=http.createServer(async(req,res)=>{
  }
  if(!['GET','HEAD'].includes(req.method)&&u.pathname.startsWith('/api/audits')&&!isAdmin(identity))return send(res,403,{error:'Customer access is read-only'});
 
- if(req.method==='GET'&&u.pathname==='/api/audits')return send(res,200,{audits:visible(identity),allowedOrigins:isAdmin(identity)?origins:[],localTesting:isAdmin(identity)?localTesting:false});
+ if(req.method==='GET'&&u.pathname==='/api/audits')return send(res,200,{audits:visible(identity).map(auditSummary),allowedOrigins:isAdmin(identity)?origins:[],localTesting:isAdmin(identity)?localTesting:false});
  if(req.method==='DELETE'&&u.pathname==='/api/audits'){
   if(busy)return send(res,409,{error:'Wait for the running scan before clearing history'});
   const result=store.db.prepare('DELETE FROM audits').run();return send(res,200,{deleted:Number(result.changes)});
@@ -80,12 +83,18 @@ const server=http.createServer(async(req,res)=>{
   if(localTesting&&['127.0.0.1','[::1]'].includes(target.hostname))target.hostname='localhost';
   const url=parseTarget(target.href,origins,{localTesting}).href;
   const ownerId=b.ownerId||identity.user.id;if(ownerId!=='legacy'&&!store.db.prepare('SELECT id FROM users WHERE id=?').get(ownerId))throw new Error('Unknown scan owner');
-  busy=true;const a=store.save({url,ownerId,state:'running',createdAt:new Date().toISOString()});send(res,202,a);
-  scan(url,origins,{localTesting}).then(result=>store.save({...result,id:a.id,ownerId:a.ownerId,state:'complete'})).catch(e=>store.save({...a,state:'failed',error:e.message})).finally(()=>{busy=false;});return;
+  if(b.includeLighthouse!==undefined&&typeof b.includeLighthouse!=='boolean')throw new Error('Lighthouse option must be true or false');
+  busy=true;const a=store.save({url,ownerId,includeLighthouse:b.includeLighthouse===true,stage:'Accessibility and on-page SEO',state:'running',createdAt:new Date().toISOString()});send(res,202,a);
+  scan(url,origins,{localTesting,includeLighthouse:b.includeLighthouse===true,onProgress:stage=>{const current=store.get(a.id);if(current)store.save({...current,stage});}}).then(result=>store.save({...result,id:a.id,ownerId:a.ownerId,includeLighthouse:a.includeLighthouse,stage:'Complete',state:'complete'})).catch(e=>store.save({...a,state:'failed',error:e.message})).finally(()=>{busy=false;});return;
  }
- const match=u.pathname.match(/^\/api\/audits\/([a-f0-9-]+)(\/export)?$/);
+ const match=u.pathname.match(/^\/api\/audits\/([a-f0-9-]+)(\/export|\/report\.html|\/lighthouse\.html)?$/);
  if(match){const a=store.get(match[1]);if(!canSee(identity,a))return send(res,404,{error:'Audit not found'});
-  if(req.method==='GET')return send(res,200,a);
+  if(req.method==='GET'){
+   if(match[2]==='/report.html'||match[2]==='/lighthouse.html'){
+    if(match[2]==='/lighthouse.html'&&(a.lighthouse?.state!=='complete'||!a.lighthouse.raw))return send(res,404,{error:'No complete Lighthouse report is available for this audit'});
+    const html=match[2]==='/report.html'?printableReport(a):generateReport(a.lighthouse.raw,'html');res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Content-Disposition':`attachment; filename="audit-${a.id}${match[2]==='/lighthouse.html'?'-lighthouse':''}.html"`,'Cache-Control':'no-store','Content-Security-Policy':"sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:"});return res.end(html);
+   }return send(res,200,enrichAudit(a));
+  }
   if(req.method==='DELETE'){if(a.state==='running')throw new Error('Wait for the scan to finish before deleting');store.db.prepare('DELETE FROM audits WHERE id=?').run(a.id);return send(res,200,{deleted:true});}
   if(req.method==='PATCH'){
    const b=await body(req);
