@@ -24,9 +24,11 @@ test('accounts isolate customer scans, enforce CSRF, rotate tokens and revoke se
  db=new Store(dir+'/db');const other=db.save({url:old.url,state:'complete',ownerId:two.id,findings:[],manual:{}});const privateAudit=db.save({url:old.url,state:'complete',ownerId:admin.user.id,findings:[],manual:{}});db.close();
  const customer=await sign('/api/auth/login',{username:'customer1',password}),second=await sign('/api/auth/login',{username:'customer2',password});
  const list=await(await request('/api/audits',customer)).json();assert.deepEqual(list.audits.map(a=>a.id),[old.id]);assert.deepEqual(list.allowedOrigins,[]);assert.equal(list.localTesting,false);assert.equal((await(await request('/api/audits',second)).json()).audits[0].id,other.id);
- for(const id of [other.id,privateAudit.id])for(const suffix of ['', '/export'])assert.equal((await request('/api/audits/'+id+suffix,customer)).status,404);
+ for(const id of [other.id,privateAudit.id])for(const suffix of ['', '/export', '/report.html', '/lighthouse.html'])assert.equal((await request('/api/audits/'+id+suffix,customer)).status,404);
  for(const [path,method,data]of [['/api/audits/'+old.id,'DELETE'],['/api/audits/'+old.id,'PATCH',{ownerId:two.id}],['/api/audits','DELETE'],['/api/audits','POST',{url:old.url,permissionConfirmed:true}],['/api/customers','POST',{username:'escalate',password,role:'admin'}]])assert.equal((await request(path,customer,method,data)).status,403);
  assert.equal((await request('/api/customers',customer)).status,403);
+ assert.equal((await request('/api/audits/'+old.id+'/report.html',customer)).status,200);
+ assert.equal((await request('/api/audits/'+old.id+'/lighthouse.html',customer)).status,404);
  assert.equal((await request(`/api/compare?before=${old.id}&after=${other.id}`,customer)).status,400);
  assert.equal((await request('/api/profile',customer,'PATCH',{name:'Changed'},{'X-CSRF-Token':''})).status,403);
  assert.equal((await request('/api/profile',customer,'PATCH',{name:'Changed'},{Origin:'https://evil.example'})).status,403);

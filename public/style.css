@@ -17,3 +17,25 @@ dialog.modal[open]{display:block}
 dialog.modal::backdrop{background:rgb(8 30 25 / 65%)}
 @media(max-width:550px){.btn{max-width:100%} .audit-actions .btn{min-height:2.25rem}}
 dialog.modal[open]{opacity:1;visibility:visible;pointer-events:auto}
+
+/* Lighthouse diagnostics, report downloads, and visible audit choice */
+.evidence-card{border:1px solid var(--border);border-radius:.7rem;padding:1rem;margin:1rem 0}.evidence-card h5,.seo-check h5{font-size:.8rem;margin:1rem 0 .35rem}.evidence-card ol,.seo-check ol{padding-left:1.3rem;font-size:.85rem;line-height:1.65}.evidence-card li,.seo-check li{margin:.4rem 0}.code-snippet{background:#eaf0ec;border-radius:.4rem;padding:.7rem}.report-downloads{display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0}.report-downloads button{font-size:.75rem}.lab-scores{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.6rem}.lab-score{border:1px solid var(--border);border-radius:.5rem;padding:.8rem;display:flex;flex-direction:column;gap:.5rem}.lab-score strong{font-size:1.25rem}.lab-score span{font-size:.75rem}.lighthouse-issue{padding:1rem 0;border-bottom:1px solid var(--border);overflow-wrap:anywhere}.lighthouse-issue summary{font-weight:650;font-size:.85rem;cursor:pointer}.lighthouse-issue p{font-size:.8rem}.table-scroll{overflow-x:auto}.table-scroll table{border-collapse:collapse;font-size:.75rem;width:100%}.table-scroll td,.table-scroll th{padding:.6rem;min-width:100px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border);white-space:pre-wrap;overflow-wrap:anywhere}@media(max-width:600px){.lab-scores{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+.lh-option{margin:1rem 0;padding:1rem;border:2px solid #c2dac9;border-radius:1rem;background:linear-gradient(145deg,#f0faf4,#ffffff);box-shadow:inset 0 0 0 1px #fff}
+.lh-option-heading{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem}.lh-mark{display:grid;place-items:center;flex-shrink:0;width:3rem;height:3rem;border-radius:.7rem;background:#195e42;color:#fff;font-size:1.1rem;font-weight:850;letter-spacing:-.05em}.lh-option-heading strong{display:block;font-size:1rem;color:#154831}.lh-option-heading small{display:block;margin-top:.2rem;color:#496d58;font-size:.72rem}.lh-option .check{font-size:.85rem}.lh-option p{margin:.65rem 0 0;font-size:.75rem}.report-downloads{padding:.8rem;border:1px solid var(--border);background:#f0f7f2;border-radius:.7rem}#lighthouse-scores{margin:1rem 0}.lab-score{background:#f3faf6;border-top:3px solid #358458}.lab-score strong{color:#174d34}
+@media (max-width:550px){.lh-option{padding:.8rem}.lh-option-heading strong{font-size:.95rem}}
+
+/* Distinctive Mallard workbench visual refresh: clear feature discovery and better hierarchy */
+body{background:linear-gradient(180deg,#edf5ee 0,#f7faf8 420px,#f5f7f6 100%)}
+.topbar{min-height:78px;margin-bottom:1rem;background:#fff;border:1px solid #dce9df;border-radius:0 0 1rem 1rem;padding:0 1.3rem;box-shadow:0 4px 22px #133d2710}
+.dashboard-heading{padding:2.3rem 2.4rem;margin:0 0 1.3rem;border-radius:1.25rem;background:linear-gradient(115deg,#123e30 0%,#1b7150 68%,#298059 100%);color:#fff;box-shadow:0 14px 32px #16462b28;position:relative;overflow:hidden}
+.dashboard-heading::after{content:'';position:absolute;width:235px;height:235px;border:35px solid #ffffff0d;right:-90px;top:-80px;border-radius:50%;pointer-events:none}
+.dashboard-heading h1{color:#fff;font-size:clamp(1.8rem,3vw,2.6rem);max-width:660px;letter-spacing:-.035em}
+.dashboard-heading .eyebrow,.dashboard-heading .hero-session{color:#d2f2df}.hero-intro{color:#e6f5eb;max-width:650px;font-size:.92rem;margin:.4rem 0}.hero-session{font-size:.75rem;opacity:.85;margin-top:1rem}
+#new-audit-link.btn{background:#f1bf58;color:#213c2a;border:none;padding:.85rem 1.25rem;font-weight:800;box-shadow:0 7px 15px #0e302032;z-index:1}
+.capabilities-strip{display:flex;flex-wrap:wrap;gap:.65rem;margin:0 0 1rem}.capabilities-strip span{font-size:.73rem;background:#e6f4e9;color:#1a5e3d;font-weight:750;border:1px solid #bfddc9;border-radius:999px;padding:.4rem .8rem}
+.stat-grid{margin-bottom:1.2rem}.stat{border-top:none;border-left:4px solid #237b52;box-shadow:0 4px 15px #173f2610}.stat strong{color:#154c34}.stat span{font-weight:750}
+.chart-grid section,.workspace-grid section{box-shadow:0 6px 20px #173f260d}.workspace-tools #scan-section{border-top:4px solid #1b7650}
+@media(max-width:800px){.dashboard-heading{padding:1.6rem}.topbar{padding:1rem}.capabilities-strip{gap:.4rem}}
+@media(max-width:550px){.dashboard-heading{padding:1.3rem}.dashboard-heading h1{font-size:1.75rem}.capabilities-strip span{font-size:.65rem;padding:.35rem .55rem}}
