@@ -47,3 +47,6 @@ The start page includes recent-audit totals, completed/failed counts, distinct p
 New audits include on-page SEO findings in Review and exported JSON. Older audits show that SEO data is unavailable until a new scan. See [SEO scope and OpenSEO assessment](docs/SEO.md). OpenSEO is MIT-licensed, but its provider-backed data workflows incur usage costs and its crawler does not support private targets. It remains an optional future integration; no paid service or OpenSEO runtime was activated.
 
 If no other account exists, Assign owner explains that there is nobody to share with and links to customer creation in Profile & settings. It never silently assigns a scan back to the same account.
+
+## daisyUI appearance
+The dashboard and account pages use **daisyUI 5 with Tailwind CSS 4** and a local Mallard theme. Components include buttons, inputs, selects, checkboxes, badges, cards and native review dialogs. `assets/theme.css` defines the theme and source scanning; `npm run build:css` compiles it into the committed `public/daisyui.css`, served locally without CDN dependencies. Run the build after changing component classes or theme tokens. `public/style.css` retains the chart/dashboard layout and accessibility-specific overrides. Styling does not alter authentication, customer ownership, scanning policy or SQLite data.

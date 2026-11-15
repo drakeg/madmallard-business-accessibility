@@ -8,11 +8,17 @@
   },
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test test/browser.test.js && node --test --test-concurrency=1 test/accounts.test.js test/api.test.js test/core.test.js test/dashboard.test.js"
+    "test": "node --test test/browser.test.js && node --test --test-concurrency=1 test/accounts.test.js test/api.test.js test/core.test.js test/dashboard.test.js",
+    "build:css": "tailwindcss -i assets/theme.css -o public/daisyui.css --minify"
   },
   "dependencies": {
     "@axe-core/playwright": "4.14.0",
     "ipaddr.js": "2.2.0",
     "playwright": "1.65.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.5",
+    "daisyui": "5.8.0",
+    "tailwindcss": "4.3.5"
   }
 }
