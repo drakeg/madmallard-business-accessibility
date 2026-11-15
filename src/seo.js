@@ -1,3 +1,4 @@
+import {validateMarkup} from './html-validation.js';
 export function analyzeSeo(snapshot){
  const checks=[];const add=(id,title,status,detail)=>checks.push({id,title,status,detail});
  add('title','Page title',snapshot.title?'pass':'fail',snapshot.title||'No page title found. Add a descriptive title for this page.');
@@ -16,4 +17,4 @@ export async function collectSeo(page,response){const snapshot=await page.evalua
  const content=selector=>(document.querySelector(selector)?.getAttribute('content')||'').trim().slice(0,2000);
  let invalid=0;const errors=[];const blocks=[...document.querySelectorAll('script[type="application/ld+json"]')];for(const block of blocks){try{JSON.parse(block.textContent);}catch(error){invalid++;if(errors.length<10)errors.push({block:invalid,message:error.message,snippet:block.textContent.slice(0,2000)});}}
  return {url:location.href,title:document.title.trim().slice(0,2000),description:content('meta[name="description" i]'),h1:[...document.querySelectorAll('h1')].slice(0,50).map(h=>h.textContent.trim().slice(0,300)),canonical:document.querySelector('link[rel="canonical" i]')?.href||'',robots:[...document.querySelectorAll('meta[name="robots" i],meta[name="googlebot" i]')].map(m=>m.content).join(', ').slice(0,2000),viewport:content('meta[name="viewport" i]'),ogTitle:content('meta[property="og:title" i]'),ogImage:content('meta[property="og:image" i]'),jsonLdCount:blocks.length,jsonLdInvalid:invalid,jsonLdErrors:errors};
- });snapshot.xRobotsTag=await response?.headerValue('x-robots-tag')||'';return analyzeSeo(snapshot);}
+ });snapshot.xRobotsTag=await response?.headerValue('x-robots-tag')||'';const result=analyzeSeo(snapshot);try{result.htmlValidation=await validateMarkup(await page.content());}catch(error){result.htmlValidation={state:'unavailable',reason:`Could not capture rendered document: ${String(error.message||error).slice(0,200)}`};}return result;}
