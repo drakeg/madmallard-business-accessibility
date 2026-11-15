@@ -8,11 +8,13 @@
   },
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test test/browser.test.js && node --test --test-concurrency=1 test/accounts.test.js test/api.test.js test/core.test.js test/dashboard.test.js"
+    "test": "node --test test/browser.test.js && node --test --test-concurrency=1 test/accounts.test.js test/api.test.js test/core.test.js test/dashboard.test.js test/reports.test.js"
   },
   "dependencies": {
     "@axe-core/playwright": "4.14.0",
     "ipaddr.js": "2.2.0",
-    "playwright": "1.65.1"
+    "lighthouse": "13.6.0",
+    "playwright": "1.65.1",
+    "puppeteer-core": "25.17.0"
   }
 }
