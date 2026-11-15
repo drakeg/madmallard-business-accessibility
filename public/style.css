@@ -41,3 +41,9 @@ body{background:linear-gradient(180deg,#edf5ee 0,#f7faf8 420px,#f5f7f6 100%)}
 @media(max-width:550px){.dashboard-heading{padding:1.3rem}.dashboard-heading h1{font-size:1.75rem}.capabilities-strip span{font-size:.65rem;padding:.35rem .55rem}}
 
 .html-validation-panel{border:1px solid #c0dfcb;border-radius:.75rem;padding:1rem;background:#f4faf6;margin-top:1rem}.html-diagnostic{border-top:1px solid #d7e8dc;padding:.85rem .25rem}.html-diagnostic p{margin:.3rem 0}.html-diagnostic pre{margin:.4rem 0;max-height:none}.html-diagnostic strong{text-transform:capitalize}
+
+/* Keep login and setup feedback readable even without a design-system alert class. */
+.account-status{display:block;margin-block:1rem;padding:.8rem 1rem;border:1px solid currentColor;border-radius:.5rem;white-space:normal;}
+.account-status[data-state="success"]{color:#0b6940;background:#e9f9ef;}
+.account-status[data-state="error"]{color:#9d1c24;background:#fff1f1;}
+.account-status[data-state="info"]{color:inherit;background:rgba(127,127,127,.07);}
