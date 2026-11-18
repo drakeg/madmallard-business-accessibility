@@ -5,6 +5,8 @@ import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import handler from '../api/index.js';
+import {database,execute,one} from '../src/cloud-db.js';
+import {SCAN_LEASE_MS,recoverInterruptedScans,setScanProgress} from '../src/cloud-scan-lifecycle.js';
 const dir=mkdtempSync(join(tmpdir(),'mm-vercel-test-'));
 process.env.LIBSQL_URL='file:'+join(dir,'test.sqlite');
 process.env.ADMIN_SETUP_TOKEN='a'.repeat(64);
@@ -42,5 +44,31 @@ try{
   const body={url:'http://127.0.0.1/',permissionConfirmed:true,includeLighthouse:false};
   const invalid=await request('/api/audits?__path=api/audits',{method:'POST',json:body,headers:{cookie,'x-csrf-token':csrf}});assert.ok([400,403].includes(invalid.status),invalid.body);
   const noPermission=await request('/api/audits?__path=api/audits',{method:'POST',json:{...body,permissionConfirmed:false},headers:{cookie,'x-csrf-token':csrf}});assert.equal(noPermission.status,400);
+ });
+ test('durable scan lease recovers interruptions without touching completed or active audits',async()=>{
+  const db=await database(),now=Date.now();
+  const owner=await one(db,'SELECT id FROM users WHERE username=?',['owner']);
+  const seed=(id,state,stage='Accessibility and on-page SEO')=>({id,url:'https://example.org/',ownerId:owner.id,createdAt:new Date(now-10000).toISOString(),state,stage,findings:[]});
+  for(const audit of [seed('stale-01','running'),seed('active-02','running'),seed('done-003','complete')]){
+   await execute(db,'INSERT INTO audits(id,body) VALUES (?,?)',[audit.id,JSON.stringify(audit)]);
+  }
+  await execute(db,'INSERT INTO scan_lease(id,audit_id,expires) VALUES (1,?,?)',['active-02',now+SCAN_LEASE_MS]);
+  assert.equal(await recoverInterruptedScans(db,now),1);
+  const stale=JSON.parse((await one(db,'SELECT body FROM audits WHERE id=?',['stale-01'])).body);
+  assert.equal(stale.state,'failed');assert.match(stale.error,/interrupted/);
+  assert.equal(await setScanProgress(db,'stale-01','Scanning'),false);
+  assert.equal(await setScanProgress(db,'done-003','Scanning'),false);
+  assert.equal(await setScanProgress(db,'active-02','Checking SEO'),true);
+  assert.equal(await recoverInterruptedScans(db,now+SCAN_LEASE_MS+1),1);
+  const active=JSON.parse((await one(db,'SELECT body FROM audits WHERE id=?',['active-02'])).body);
+  assert.equal(active.state,'failed');assert.equal(active.stage,'Interrupted');
+  assert.equal(await one(db,'SELECT audit_id FROM scan_lease WHERE id=1'),null);
+  const done=JSON.parse((await one(db,'SELECT body FROM audits WHERE id=?',['done-003'])).body);
+  assert.equal(done.state,'complete');assert.equal(done.stage,'Accessibility and on-page SEO');
+  const login=await request('/api/auth/login?__path=api/auth/login',{method:'POST',json:{username:'owner',password:'a very long password 123'}});
+  const list=await request('/api/audits?__path=api/audits',{headers:{cookie:login.headers['set-cookie'].split(';')[0]}});
+  assert.equal(list.status,200);
+  assert.equal(list.json().audits.find(a=>a.id==='stale-01').state,'failed');
+  assert.equal(list.json().audits.find(a=>a.id==='done-003').state,'complete');
  });
 }finally{process.on('exit',()=>rmSync(dir,{recursive:true,force:true}));}

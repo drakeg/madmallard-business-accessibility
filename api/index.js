@@ -5,6 +5,7 @@ import {publicUser,verifyPassword,createUser,rate,identity,createSession,logout,
 import {auditSummary,enrichAudit} from '../src/evidence.js';
 import {printableReport} from '../src/report.js';
 import {parseTarget,compare} from '../src/policy.js';
+import {SCAN_LEASE_MS,recoverInterruptedScans,setScanProgress} from '../src/cloud-scan-lifecycle.js';
 
 const staticFiles={'/':'index.html','/index.html':'index.html','/login':'account.html','/profile':'account.html','/app.js':'app.js','/account.js':'account.js','/dashboard.js':'dashboard.js','/guidance.js':'guidance.js','/style.css':'style.css','/daisyui.css':'daisyui.css','/third-party-notices':'third-party-notices.txt'};
 const contentType=path=>path.endsWith('.js')?'text/javascript; charset=utf-8':path.endsWith('.css')?'text/css; charset=utf-8':path==='/third-party-notices'?'text/plain; charset=utf-8':'text/html; charset=utf-8';
@@ -22,10 +23,12 @@ async function scheduleScan(db,a,origins){
  const job=(async()=>{
   try{
    const {scan}=await import('../src/scanner.js');
-   const result=await scan(a.url,origins,{localTesting:false,includeLighthouse:false,onProgress:async stage=>{try{const latest=await getAudit(db,a.id);if(latest)await storeAudit(db,{...latest,stage});}catch{}}});
+   const result=await scan(a.url,origins,{localTesting:false,includeLighthouse:false,onProgress:stage=>{setScanProgress(db,a.id,stage).catch(error=>console.error('Scan progress update failed:',error.message));}});
    await storeAudit(db,{...result,id:a.id,ownerId:a.ownerId,includeLighthouse:false,stage:'Complete',state:'complete'});
-  }catch(error){await storeAudit(db,{...a,state:'failed',error:String(error.message||error).slice(0,600)});}
-  finally{await releaseLease(db,a);}
+  }catch(error){
+   console.error('Audit failed:',a.id,String(error.message||error).slice(0,240));
+   await storeAudit(db,{...a,state:'failed',stage:'Failed',error:String(error.message||error).slice(0,600),finishedAt:new Date().toISOString()});
+  }finally{await releaseLease(db,a);}
  })();
  // Vercel Fluid Compute keeps the function alive to complete a bounded job after a 202 response.
  if(process.env.VERCEL){const {waitUntil}=await import('@vercel/functions');waitUntil(job);}else job.catch(error=>console.error('Background scan:',error.message));
@@ -87,14 +90,17 @@ export default async function handler(req,res){
   }
   if(!['GET','HEAD'].includes(method)&&pathname.startsWith('/api/audits')&&!admin)return send(res,403,{error:'Customer access is read-only'});
   if(method==='GET'&&pathname==='/api/audits'){
+   await recoverInterruptedScans(db);
    const rows=admin?await all(db,'SELECT body FROM audits ORDER BY rowid DESC LIMIT 100'):await all(db,"SELECT body FROM audits WHERE json_extract(body,'$.ownerId')=? ORDER BY rowid DESC LIMIT 100",[account.user.id]);
    return send(res,200,{audits:rows.map(r=>auditSummary(JSON.parse(r.body))),allowedOrigins:admin?allowedOrigins():[],localTesting:false,lighthouseAvailable:false});
   }
   if(method==='DELETE'&&pathname==='/api/audits'){
+   await recoverInterruptedScans(db);
    const lease=await one(db,'SELECT * FROM scan_lease WHERE id=1 AND expires>?',[Date.now()]);if(lease)return send(res,409,{error:'Wait for a running scan to finish'});
    const result=await execute(db,'DELETE FROM audits');return send(res,200,{deleted:Number(result.rowsAffected)});
   }
   if(method==='POST'&&pathname==='/api/audits'){
+   await recoverInterruptedScans(db);
    const b=await body(req);if(b.permissionConfirmed!==true)throw new Error('Confirm site-owner permission');
    if(typeof b.includeLighthouse!=='boolean'&&b.includeLighthouse!==undefined)throw new Error('Invalid Lighthouse setting');
    if(b.includeLighthouse===true)return send(res,422,{error:'Lighthouse is not enabled on the Vercel runtime. Use the regular axe, SEO and HTML-Validate audit.'});
@@ -103,10 +109,14 @@ export default async function handler(req,res){
    const ownerId=b.ownerId||account.user.id;
    if(!await one(db,'SELECT id FROM users WHERE id=?',[ownerId]))throw new Error('Unknown scan owner');
    const id=randomUUID(),now=Date.now();
-   const lease=await execute(db,'INSERT INTO scan_lease(id,audit_id,expires) VALUES (1,?,?) ON CONFLICT(id) DO UPDATE SET audit_id=excluded.audit_id,expires=excluded.expires WHERE scan_lease.expires<?',[id,now+100000,now]);
+   const lease=await execute(db,'INSERT INTO scan_lease(id,audit_id,expires) VALUES (1,?,?) ON CONFLICT(id) DO UPDATE SET audit_id=excluded.audit_id,expires=excluded.expires WHERE scan_lease.expires<?',[id,now+SCAN_LEASE_MS,now]);
    if(Number(lease.rowsAffected)!==1)return send(res,409,{error:'A scan is already running; retry when complete'});
-   const a=await storeAudit(db,{id,url,ownerId,includeLighthouse:false,stage:'Accessibility and on-page SEO',state:'running',createdAt:new Date().toISOString()});
-   await scheduleScan(db,a,origins);return send(res,202,a);
+   let a;
+   try{
+    a=await storeAudit(db,{id,url,ownerId,includeLighthouse:false,stage:'Accessibility and on-page SEO',state:'running',createdAt:new Date().toISOString()});
+    await scheduleScan(db,a,origins);
+   }catch(error){await releaseLease(db,{id});throw error;}
+   return send(res,202,a);
   }
   const match=pathname.match(/^\/api\/audits\/([a-f0-9-]+)(\/export|\/report\.html|\/lighthouse\.html)?$/);
   if(match){const a=await getAudit(db,match[1]);if(!canSee(account,a))return send(res,404,{error:'Audit not found'});
