@@ -15,3 +15,11 @@ Project scope: this repository only. Align changes with [SPRINTS.md](SPRINTS.md)
 | P2 | Safe site-wide crawl evaluation | Blocked on security review | Fixed scope/quotas, redirect and network guard tests; no unapproved crawling |
 
 Commercial hypothesis: agencies managing small-business websites pay for time-saving prioritized audit reports. The existing $249 pilot estimate is **not** validated revenue, a sales offer, or proof of demand. Prioritize successful scans and useful reporting over feature breadth.
+
+## Community readiness (2026-11-19)
+
+- [x] Configure Discussions welcome topic and confirm standard question/idea/announcement categories ([#14](https://github.com/drakeg/madmallard-business-accessibility/discussions/14))
+- [x] Prepare six versioned Wiki source pages and publication checklist without changing repository visibility
+- [ ] Enable live GitHub Wiki after explicit public visibility approval (currently unavailable on private GitHub plan)
+- [ ] Complete account-level GitHub Sponsors enrollment and validate destination before adding `.github/FUNDING.yml`
+- [ ] Perform secrets, history, customer-data and open-source license review before any public release
