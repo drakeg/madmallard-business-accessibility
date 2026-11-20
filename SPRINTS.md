@@ -30,3 +30,14 @@ See [BACKLOG.md](BACKLOG.md) for ordered work and [RELEASES.md](RELEASES.md) for
 ## Sprint 5 — Safe multi-page expansion (planned, not approved for arbitrary crawling)
 **Goal:** scoped authorized site discovery, bounded request quotas and redirect/DNS revalidation after security review.
 **Acceptance:** policy tests prohibit SSRF and cross-customer access; costs and scan duration stay bounded.
+
+## Community enablement — conditional public release preparation (active)
+
+**Scope:** Improve contributor support and future public documentation without publishing the private codebase or advertising unverified financial support.
+
+- [x] Verify Discussions categories and publish welcome topic
+- [x] Prepare reviewed Wiki source documentation and community launch checklist
+- [ ] Wiki feature and pages go live **only after** approved repository-publication decision
+- [ ] Account owner completes GitHub Sponsors verification; then enable the Sponsor button with a reviewed funding file
+
+**Acceptance:** existing private status preserved, no broken funding links, Wiki source pages versioned and discussions available, no new customer data exposure.

@@ -40,6 +40,10 @@ No multi-page crawling, authenticated target-site scanning, PDF audit, automated
 ## Business pilot — hypothesis
 Buyer: small agencies maintaining local-business sites. Offer: audit three agreed pages, prioritized findings, a manual review session and one retest; repairs quoted separately. $249 is an unvalidated pilot-price hypothesis, not promised income. Test five owner-authorized prospects; proceed only with credible paid interest. Do not promise legal protection or certification.
 
+## Community, Wiki and sponsorship readiness
+
+[Discussions](https://github.com/drakeg/madmallard-business-accessibility/discussions) is enabled, with a [welcome topic](https://github.com/drakeg/madmallard-business-accessibility/discussions/14), Q&A and feature ideas. A future public GitHub Wiki is prepared as versioned pages in [`docs/wiki/`](docs/wiki/); the Wiki feature cannot currently be enabled on the private repository with its existing plan. The repository remains private until explicitly authorized otherwise. Sponsorships require a working GitHub Sponsors account; the potential funding configuration is retained as a non-active template in `docs/community/FUNDING.yml.example` to avoid a broken Sponsor button. See [community setup and public release checklist](docs/PUBLIC_COMMUNITY_SETUP.md). Becoming public requires separate licensing, secrets and customer-data review.
+
 ## Portfolio and attribution
 Hub: https://github.com/drakeg/madmallard-ai-operations . Shared topic `madmallard-business`; separate private repositories use `madmallard-business-<offering>`.
 
