@@ -71,4 +71,24 @@ try{
   assert.equal(list.json().audits.find(a=>a.id==='stale-01').state,'failed');
   assert.equal(list.json().audits.find(a=>a.id==='done-003').state,'complete');
  });
+ test('cloud HTML report persists across requests and rejects anonymous access',async()=>{
+  const db=await database();
+  const owner=await one(db,'SELECT id FROM users WHERE username=?',['owner']);
+  const audit={id:'aabbccdd-0011-4a22-aa33-445566778899',url:'https://example.org/',ownerId:owner.id,createdAt:new Date().toISOString(),state:'complete',findings:[],incomplete:[],manual:{keyboard:'not-tested'},lighthouse:{state:'not-requested'}};
+  await execute(db,'INSERT INTO audits(id,body) VALUES(?,?)',[audit.id,JSON.stringify(audit)]);
+  const login=await request('/api/auth/login?__path=api/auth/login',{method:'POST',json:{username:'owner',password:'a very long password 123'}});
+  assert.equal(login.status,200);
+  const reportPath='/api/audits/aabbccdd-0011-4a22-aa33-445566778899/report.html?__path=api/audits/aabbccdd-0011-4a22-aa33-445566778899/report.html';
+  const denied=await request(reportPath);assert.equal(denied.status,401);
+  const cookie=login.headers['set-cookie'].split(';')[0];
+  for(let n=0;n<2;n++){
+   const report=await request(reportPath,{headers:{cookie}});
+   assert.equal(report.status,200);
+   assert.match(report.body,/Accessibility, SEO & Lighthouse report/);
+   assert.match(report.headers['content-disposition'],/attachment/);
+   const detail=await request('/api/audits/aabbccdd-0011-4a22-aa33-445566778899?__path=api/audits/aabbccdd-0011-4a22-aa33-445566778899',{headers:{cookie}});
+   assert.equal(detail.status,200);
+   assert.equal(detail.json().state,'complete');
+  }
+ });
 }finally{process.on('exit',()=>rmSync(dir,{recursive:true,force:true}));}

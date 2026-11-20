@@ -15,10 +15,10 @@ See [BACKLOG.md](BACKLOG.md) for ordered work and [RELEASES.md](RELEASES.md) for
 **Outstanding acceptance:** live authorized cloud scan completes, printable report downloads and persists after refresh, customer isolation proven in preview. Deployment READY alone does not meet acceptance.
 
 ## Sprint 3 — Reliable hosted audits and repository standards (active)
-- [ ] **P0:** Finish interrupted-scan recovery PR #10, live validate failed/retry path and durable reports
+- [ ] **P0:** Interrupted-scan recovery merged in PR #10; **live** validate failed/retry path and durable reports
 - [ ] **P0:** Prove a hosted browser audit end-to-end, including failing cases; fix Chromium/runtime defects
-- [x] **P1:** Add read-only scheduled public production API smoke checks (health, DB access, unauthenticated denial) — live test and PR pending
-- [x] **P1:** Add standards docs, truthful README badges, project-specific CI, security validation, PR template (review in progress)
+- [x] **P1:** Read-only hosted smoke workflow merged in PR #12; manual production run succeeded
+- [x] **P1:** Standards docs, README badges, CI, security workflow and PR template merged in PR #11
 - [ ] **P1:** Establish documented LAN-accessible Docker test with volume preservation; confirm on a host
 
 **Acceptance:** both target deployments tested, hosted job terminal states correct, authorization/report regressions passing, badge drift checked in CI.
