@@ -17,6 +17,7 @@ See [BACKLOG.md](BACKLOG.md) for ordered work and [RELEASES.md](RELEASES.md) for
 ## Sprint 3 — Reliable hosted audits and repository standards (active)
 - [ ] **P0:** Finish interrupted-scan recovery PR #10, live validate failed/retry path and durable reports
 - [ ] **P0:** Prove a hosted browser audit end-to-end, including failing cases; fix Chromium/runtime defects
+- [x] **P1:** Add read-only scheduled public production API smoke checks (health, DB access, unauthenticated denial) — live test and PR pending
 - [x] **P1:** Add standards docs, truthful README badges, project-specific CI, security validation, PR template (review in progress)
 - [ ] **P1:** Establish documented LAN-accessible Docker test with volume preservation; confirm on a host
 
