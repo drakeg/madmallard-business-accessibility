@@ -17,6 +17,7 @@ See [BACKLOG.md](BACKLOG.md) for ordered work and [RELEASES.md](RELEASES.md) for
 ## Sprint 3 — Reliable hosted audits and repository standards (active)
 - [ ] **P0:** Interrupted-scan recovery merged in PR #10; **live** validate failed/retry path and durable reports
 - [ ] **P0:** Prove a hosted browser audit end-to-end, including failing cases; fix Chromium/runtime defects
+- [x] **P0:** Add cloud customer-isolation regression coverage for detail/export/compare and read-only customer access (PR review pending); live account verification remains outstanding
 - [x] **P1:** Read-only hosted smoke workflow merged in PR #12; manual production run succeeded
 - [x] **P1:** Standards docs, README badges, CI, security workflow and PR template merged in PR #11
 - [ ] **P1:** Establish documented LAN-accessible Docker test with volume preservation; confirm on a host
