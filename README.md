@@ -90,7 +90,7 @@ Vercel now has a dedicated `api/index.js` serverless handler. No `API_TOKEN` is 
 
 ### Recovering interrupted Vercel scans
 
-Hosted scan jobs are limited by Vercel Function execution time. A durable database lease (150 seconds) prevents overlapping jobs; if a function stops without writing a terminal result, the next audit-list refresh or scan request converts its abandoned `running` record into a visible `failed` record with a retry explanation. Scan-progress writes are conditional on the audit still being `running` so a late progress callback cannot overwrite a completed or failed result. Completed reports, review notes, customer assignments, and other audit history are not purged by recovery. A failed scan must be retried by starting a new audit; no repeated scans run automatically.
+Hosted scan jobs are limited by Vercel Function execution time. A durable database lease (150 seconds) prevents overlapping jobs; if a function stops without writing a terminal result, the next audit-list refresh or scan request converts its abandoned `running` record into a visible `failed` record with a retry explanation. Scan-progress writes are conditional on the audit still being `running` so a late progress callback cannot overwrite a completed or failed result. Terminal success/failure writes additionally require the active database lease to belong to that audit and have time remaining; timed-out or superseded jobs cannot overwrite stored evidence. Completed reports, review notes, customer assignments, and other audit history are not purged by recovery. A failed scan must be retried by starting a new audit; no repeated scans run automatically.
 
 
 ### Read-only hosted smoke checks
