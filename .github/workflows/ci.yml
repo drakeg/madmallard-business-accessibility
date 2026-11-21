@@ -19,6 +19,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Node and browser regression tests
         run: npm test
+      - name: Packaged Vercel Chromium integration on Linux
+        run: node --test test/serverless-chromium.test.js
   standards:
     runs-on: ubuntu-latest
     timeout-minutes: 5

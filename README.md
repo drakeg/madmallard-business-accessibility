@@ -96,3 +96,8 @@ Hosted scan jobs are limited by Vercel Function execution time. A durable databa
 ### Read-only hosted smoke checks
 
 Run `npm run smoke:hosted` against the canonical Vercel production deployment or set `SMOKE_BASE_URL=https://your-preview-host.example` for another reachable environment. This checks `/healthz` (HTTP 200), `/api/auth/status` (HTTP 200 with a boolean `needsSetup`) and anonymous `/api/audits` (HTTP 401). It never creates accounts, starts scans, reads customer audit details or stores credentials. GitHub Actions `Hosted smoke` runs on weekdays and can be manually triggered. **Passing these checks does not prove authentication, Chromium scans, completed reports or historical persistence.** Those remain the next manual authenticated release gate.
+
+
+### Serverless Chromium integration validation
+
+The GitHub CI test job exercises `@sparticuz/chromium` on Linux against an **in-process, loopback-only test fixture** with explicit local-testing permission. The test checks that the packaged serverless binary actually launches and that an authorized axe/SEO/HTML-Validate scan completes; it does not scan a third-party website. Run `npm run test:vercel` on Linux to reproduce. The serverless browser test is skipped on macOS because the packaged binary is Linux-only. A passing Linux CI test is necessary but **not sufficient** for the Vercel release gate: an authenticated live scan, saved report and reloaded history must still pass against the deployed site.
