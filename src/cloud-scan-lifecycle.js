@@ -27,3 +27,15 @@ export async function setScanProgress(db,id,stage){
  const result=await execute(db,"UPDATE audits SET body=? WHERE id=? AND json_extract(body,'$.state')='running'",[JSON.stringify({...current,stage}),id]);
  return Number(result.rowsAffected)>0;
 }
+
+// A timed-out job may still finish after its lease expires or a new scan starts.
+// Terminal state changes must be conditional on *both* an active lease owned
+// by this audit and the audit still running. This is one atomic SQL statement
+// so a late result cannot resurrect a recovered/failed or deleted report.
+export async function finishScan(db,audit,{now=Date.now()}={}){
+ if(!['complete','failed'].includes(audit?.state))throw new Error('Invalid terminal scan state');
+ const result=await execute(db,
+  "UPDATE audits SET body=? WHERE id=? AND json_extract(body,'$.state')='running' AND EXISTS (SELECT 1 FROM scan_lease WHERE id=1 AND audit_id=? AND expires>?)",
+  [JSON.stringify({...audit,finishedAt:new Date(now).toISOString()}),audit.id,audit.id,now]);
+ return Number(result.rowsAffected)===1;
+}

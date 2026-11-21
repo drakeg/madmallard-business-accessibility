@@ -5,8 +5,8 @@ import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import handler from '../api/index.js';
-import {database,execute,one} from '../src/cloud-db.js';
-import {SCAN_LEASE_MS,recoverInterruptedScans,setScanProgress} from '../src/cloud-scan-lifecycle.js';
+import {database,execute,one,normalizeCloudSql} from '../src/cloud-db.js';
+import {SCAN_LEASE_MS,recoverInterruptedScans,setScanProgress,finishScan} from '../src/cloud-scan-lifecycle.js';
 const dir=mkdtempSync(join(tmpdir(),'mm-vercel-test-'));
 process.env.LIBSQL_URL='file:'+join(dir,'test.sqlite');
 process.env.ADMIN_SETUP_TOKEN='a'.repeat(64);
@@ -136,5 +136,26 @@ try{
   const deniedCustomers=await request('/api/customers?__path=api/customers',{headers});
   assert.equal(deniedCustomers.status,403);
   assert.equal((await one(db,'SELECT body FROM audits WHERE id=?',[a.id])).body.includes(b.ownerId),false);
+ });
+ test('late browser completions cannot overwrite recovered or newly leased scans',async()=>{
+  const db=await database(),now=Date.now();
+  const owner=await one(db,'SELECT id FROM users WHERE username=?',['owner']);
+  const seed=(id)=>({id,url:'https://example.org/',ownerId:owner.id,createdAt:new Date(now).toISOString(),state:'running',stage:'Starting'});
+  const first=seed('aaaa5555-1111-4111-8111-111111111111');
+  const next=seed('bbbb5555-2222-4222-8222-222222222222');
+  for(const a of [first,next])await execute(db,'INSERT INTO audits(id,body) VALUES (?,?)',[a.id,JSON.stringify(a)]);
+  await execute(db,'INSERT INTO scan_lease(id,audit_id,expires) VALUES (1,?,?)',[first.id,now+100]);
+  assert.equal(await finishScan(db,{...first,state:'complete',stage:'Complete'},{now}),true);
+  assert.equal(await finishScan(db,{...first,state:'failed',stage:'Failed'},{now}),false);
+  assert.equal((JSON.parse((await one(db,'SELECT body FROM audits WHERE id=?',[first.id])).body)).state,'complete');
+  // The old job's lease expires and is replaced by another scan.
+  await execute(db,'UPDATE scan_lease SET audit_id=?,expires=? WHERE id=1',[next.id,now+1000]);
+  assert.equal(await finishScan(db,{...first,state:'failed'},{now:now+150}),false);
+  assert.equal(await finishScan(db,{...next,state:'complete'},{now:now+1100}),false);
+  assert.equal(await finishScan(db,{...next,state:'complete'},{now:now+500}),true);
+  assert.equal((JSON.parse((await one(db,'SELECT body FROM audits WHERE id=?',[next.id])).body)).state,'complete');
+  assert.equal(await finishScan(db,{...next,state:'failed'},{now:now+500}),false);
+  assert.match(normalizeCloudSql("UPDATE audits SET body=? WHERE json_extract(body,'$.state')='running' AND EXISTS (SELECT 1 FROM scan_lease WHERE audit_id=?)"),/mm_audit\.audits.*body::jsonb->>'state'.*mm_audit\.scan_lease/);
+  assert.match(normalizeCloudSql("SELECT body FROM audits WHERE json_extract(body,'$.ownerId')=?"),/body::jsonb->>'ownerId'/);
  });
 }finally{process.on('exit',()=>rmSync(dir,{recursive:true,force:true}));}

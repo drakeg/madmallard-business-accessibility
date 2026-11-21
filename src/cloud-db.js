@@ -25,11 +25,20 @@ export const one=async(db,sql,args=[])=>{const result=await db.execute({sql,args
 export const all=async(db,sql,args=[])=>(await db.execute({sql,args})).rows;
 export const execute=async(db,sql,args=[])=>db.execute({sql,args});
 
+// Kept pure so SQLite-compatible lifecycle queries are also covered by tests
+// against the PostgreSQL dialect even when no live PostgreSQL is attached.
+export function normalizeCloudSql(statement){
+ return statement
+  .replace(/\b(users|sessions|login_attempts|audits|scan_lease)\b/g,'mm_audit.$1')
+  .replace(/json_extract\(body,'\$\.(ownerId|state)'\)/g,(_match,key)=>`(body::jsonb->>'${key}')`)
+  .replace(/ORDER BY rowid DESC/g,"ORDER BY (body::jsonb->>'createdAt') DESC");
+}
+
 async function postgresAdapter(url){
  const sql=postgres(url,{ssl:'require',max:2,prepare:false,idle_timeout:20,connect_timeout:10});
  // Keep passwords and audit data in a schema that is not exposed by Supabase's public Data API.
  await sql.unsafe('CREATE SCHEMA IF NOT EXISTS mm_audit');
- const normalize=statement=>statement.replace(/\b(users|sessions|login_attempts|audits|scan_lease)\b/g,'mm_audit.$1').replace(/json_extract\(body,'\$\.ownerId'\)/g,"(body::jsonb->>'ownerId')").replace(/ORDER BY rowid DESC/g,"ORDER BY (body::jsonb->>'createdAt') DESC");
+ const normalize=normalizeCloudSql;
  return {execute:async({sql:statement,args=[]})=>{
   let counter=0;const translated=normalize(statement).replace(/\?/g,()=>'$'+(++counter));
   const rows=await sql.unsafe(translated,args);
