@@ -5,7 +5,8 @@ import {publicUser,verifyPassword,createUser,rate,identity,createSession,logout,
 import {auditSummary,enrichAudit} from '../src/evidence.js';
 import {printableReport} from '../src/report.js';
 import {parseTarget,compare} from '../src/policy.js';
-import {SCAN_LEASE_MS,recoverInterruptedScans,setScanProgress,finishScan} from '../src/cloud-scan-lifecycle.js';
+import {SCAN_LEASE_MS,recoverInterruptedScans} from '../src/cloud-scan-lifecycle.js';
+import {runCloudScan} from '../src/cloud-scan-runner.js';
 
 const staticFiles={'/':'index.html','/index.html':'index.html','/login':'account.html','/profile':'account.html','/app.js':'app.js','/account.js':'account.js','/dashboard.js':'dashboard.js','/scan-feedback.js':'scan-feedback.js','/guidance.js':'guidance.js','/style.css':'style.css','/daisyui.css':'daisyui.css','/third-party-notices':'third-party-notices.txt'};
 const contentType=path=>path.endsWith('.js')?'text/javascript; charset=utf-8':path.endsWith('.css')?'text/css; charset=utf-8':path==='/third-party-notices'?'text/plain; charset=utf-8':'text/html; charset=utf-8';
@@ -20,16 +21,9 @@ const storeAudit=async(db,a)=>{a={...a,id:a.id||randomUUID()};await execute(db,'
 const releaseLease=async(db,a)=>{await execute(db,'DELETE FROM scan_lease WHERE id=1 AND audit_id=?',[a.id]);};
 
 async function scheduleScan(db,a,origins){
- const job=(async()=>{
-  try{
-   const {scan}=await import('../src/scanner.js');
-   const result=await scan(a.url,origins,{localTesting:false,includeLighthouse:false,onProgress:stage=>{setScanProgress(db,a.id,stage).catch(error=>console.error('Scan progress update failed:',error.message));}});
-   if(!await finishScan(db,{...result,id:a.id,ownerId:a.ownerId,includeLighthouse:false,stage:'Complete',state:'complete'}))console.warn('Discarded late scan completion:',a.id);
-  }catch(error){
-   console.error('Audit failed:',a.id,String(error.message||error).slice(0,240));
-   if(!await finishScan(db,{...a,state:'failed',stage:'Failed',error:String(error.message||error).slice(0,600)}))console.warn('Discarded late scan failure:',a.id);
-  }finally{await releaseLease(db,a);}
- })();
+ const job=runCloudScan(db,a,origins,async(...args)=>{
+  const {scan}=await import('../src/scanner.js');return scan(...args);
+ });
  // Vercel Fluid Compute keeps the function alive to complete a bounded job after a 202 response.
  if(process.env.VERCEL){const {waitUntil}=await import('@vercel/functions');waitUntil(job);}else job.catch(error=>console.error('Background scan:',error.message));
 }
