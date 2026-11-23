@@ -95,7 +95,7 @@ Hosted scan jobs are limited by Vercel Function execution time. A durable databa
 
 ### Read-only hosted smoke checks
 
-Run `npm run smoke:hosted` against the canonical Vercel production deployment or set `SMOKE_BASE_URL=https://your-preview-host.example` for another reachable environment. This checks `/healthz` (HTTP 200), `/api/auth/status` (HTTP 200 with a boolean `needsSetup`) and anonymous `/api/audits` (HTTP 401). It never creates accounts, starts scans, reads customer audit details or stores credentials. GitHub Actions `Hosted smoke` runs on weekdays and can be manually triggered. **Passing these checks does not prove authentication, Chromium scans, completed reports or historical persistence.** Those remain the next manual authenticated release gate.
+Run `npm run smoke:hosted` against the canonical Vercel production deployment or set `SMOKE_BASE_URL=https://your-preview-host.example` for another reachable environment. This checks `/healthz` (HTTP 200), `/api/auth/status` (HTTP 200 with a boolean `needsSetup`) and anonymous `/api/audits` (HTTP 401). It never creates accounts, starts scans, reads customer audit details or stores credentials. If the production database still has no administrator, the check emits a clear **SETUP PENDING** warning (including a GitHub Actions warning annotation) while keeping the transport/security health check separate from the customer-ready release gate. GitHub Actions `Hosted smoke` runs on weekdays and can be manually triggered. **Passing these checks does not prove authentication, Chromium scans, completed reports or historical persistence.** Those remain the next manual authenticated release gate.
 
 
 ### Serverless Chromium integration validation
