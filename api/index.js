@@ -7,7 +7,7 @@ import {printableReport} from '../src/report.js';
 import {parseTarget,compare} from '../src/policy.js';
 import {SCAN_LEASE_MS,recoverInterruptedScans,setScanProgress,finishScan} from '../src/cloud-scan-lifecycle.js';
 
-const staticFiles={'/':'index.html','/index.html':'index.html','/login':'account.html','/profile':'account.html','/app.js':'app.js','/account.js':'account.js','/dashboard.js':'dashboard.js','/guidance.js':'guidance.js','/style.css':'style.css','/daisyui.css':'daisyui.css','/third-party-notices':'third-party-notices.txt'};
+const staticFiles={'/':'index.html','/index.html':'index.html','/login':'account.html','/profile':'account.html','/app.js':'app.js','/account.js':'account.js','/dashboard.js':'dashboard.js','/scan-feedback.js':'scan-feedback.js','/guidance.js':'guidance.js','/style.css':'style.css','/daisyui.css':'daisyui.css','/third-party-notices':'third-party-notices.txt'};
 const contentType=path=>path.endsWith('.js')?'text/javascript; charset=utf-8':path.endsWith('.css')?'text/css; charset=utf-8':path==='/third-party-notices'?'text/plain; charset=utf-8':'text/html; charset=utf-8';
 const send=(res,status,body)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(body));};
 const respondHtml=(res,html,name)=>{res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Content-Disposition':`attachment; filename="${name}"`,'Cache-Control':'no-store','Content-Security-Policy':"sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:"});res.end(html);};

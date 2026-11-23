@@ -101,3 +101,8 @@ Run `npm run smoke:hosted` against the canonical Vercel production deployment or
 ### Serverless Chromium integration validation
 
 The GitHub CI test job exercises `@sparticuz/chromium` on Linux against an **in-process, loopback-only test fixture** with explicit local-testing permission. The test checks that the packaged serverless binary actually launches and that an authorized axe/SEO/HTML-Validate scan completes; it does not scan a third-party website. Run `npm run test:vercel` on Linux to reproduce. The serverless browser test is skipped on macOS because the packaged binary is Linux-only. A passing Linux CI test is necessary but **not sufficient** for the Vercel release gate: an authenticated live scan, saved report and reloaded history must still pass against the deployed site.
+
+
+### Scan status feedback
+
+During an authorized scan the dashboard polls audit history. A completed or failed job now produces an accessible status message with the page URL and next step; failed jobs include their stored error and suggest starting a new scan instead of retrying automatically. Previously completed history never generates spurious notifications on sign-in. This is browser-session feedback, not a push notification or server-side job scheduler.

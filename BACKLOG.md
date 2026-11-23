@@ -5,7 +5,7 @@ Project scope: this repository only. Align changes with [SPRINTS.md](SPRINTS.md)
 | Priority | Item | Status | Acceptance criteria |
 | --- | --- | --- | --- |
 | P0 | Recover interrupted Vercel scans | Merged PR #10; terminal-write race protection in progress; live validation pending | Stale running scans become failed; completed records and notes untouched; cloud preview checked |
-| P0 | Run authenticated real hosted scan | Ready after #10 | Approved website scanned, results survive reload, printable report downloads, errors are visible |
+| P0 | Run authenticated real hosted scan | Blocked on production administrator setup; scan-status UI enhancement in progress | Approved website scanned, results survive reload, printable report downloads, errors are visible |
 | P0 | Test report authorization | Test PR in progress; live proof pending | Automated customer-isolation tests reject unrelated report/detail/export/compare and all customer writes |
 | P1 | Repository standards and verified README badges | Merged PR #11 | All standards docs, scripts, read-only CI, security audit, valid badge check |
 | P1 | LAN Docker smoke and preservation | Planned | Bind address configurable with `BIND_ADDRESS=0.0.0.0`, healthy container and retained named volume; no public exposure |
