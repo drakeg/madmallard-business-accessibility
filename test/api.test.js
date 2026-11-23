@@ -12,6 +12,7 @@ test('API protects records, enforces consent and persists review/export',async()
  try{
  let ready=false;for(let i=0;i<80;i++){try{if((await fetch(base+'/healthz')).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,50));}assert.ok(ready,'server starts');
  assert.equal((await fetch(base+'/api/audits')).status,401);
+ const feedback=await fetch(base+'/scan-feedback.js');assert.equal(feedback.status,200);assert.match(await feedback.text(),/observeScanOutcomes/);
  assert.equal((await request('/api/audits',{method:'POST',body:JSON.stringify({url:'https://example.com'})})).status,400);
  assert.equal((await request('/api/audits',{method:'POST',body:JSON.stringify({url:'http://127.0.0.1',permissionConfirmed:true})})).status,400);
  assert.equal((await request(`/api/audits/${a.id}`,{method:'PATCH',body:JSON.stringify({findingIndex:0,status:'fixed',note:''})})).status,400);

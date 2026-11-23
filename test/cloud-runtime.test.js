@@ -20,6 +20,7 @@ try{
   const saved=process.env.LIBSQL_URL;delete process.env.LIBSQL_URL;
   try{
    const homepage=await request('/?__path=');assert.equal(homepage.status,200);assert.match(homepage.body,/Audit, understand, and improve/);
+   const feedback=await request('/scan-feedback.js?__path=scan-feedback.js');assert.equal(feedback.status,200);assert.match(feedback.body,/observeScanOutcomes/);
    const health=await request('/healthz?__path=healthz');assert.equal(health.status,503);assert.equal(health.json().status,'database-unconfigured');
    const status=await request('/api/auth/status?__path=api/auth/status');assert.equal(status.status,503);assert.match(status.json().error,/Database not configured/);
   }finally{process.env.LIBSQL_URL=saved;}

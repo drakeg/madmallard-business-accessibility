@@ -1,5 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {summarizeAudits} from '../public/dashboard.js';
+import {observeScanOutcomes,outcomeMessage} from '../public/scan-feedback.js';
 import {analyzeSeo} from '../src/seo.js';
 test('dashboard uses latest completed page scans, excludes resolved findings and labels SEO coverage',()=>{
  const now=new Date(2026,10,14,12);const when=offset=>{const d=new Date(now);d.setDate(d.getDate()+offset);return d.toISOString();};
@@ -13,4 +14,19 @@ test('SEO checks distinguish observed syntax from indexing/ranking assumptions',
  const result=analyzeSeo({title:'',description:'',h1:[],canonical:'javascript:alert(1)',robots:'noindex, nofollow',xRobotsTag:'',jsonLdCount:1,jsonLdInvalid:1,viewport:'',ogTitle:'',ogImage:''});
  const status=id=>result.checks.find(c=>c.id===id).status;assert.equal(status('title'),'fail');assert.equal(status('description'),'review');assert.equal(status('canonical'),'fail');assert.equal(status('robots'),'review');assert.equal(status('structured-data'),'fail');assert.match(result.limitations.join(' '),/not an SEO score/);
  const clean=analyzeSeo({title:'Example',description:'Summary',h1:['Welcome'],canonical:'https://example.com/',robots:'',xRobotsTag:'noindex',jsonLdCount:0,jsonLdInvalid:0,viewport:'width=device-width',ogTitle:'Example',ogImage:'image.png'});assert.equal(clean.checks.find(c=>c.id==='robots').status,'review');assert.equal(clean.checks.find(c=>c.id==='structured-data').status,'info');
+});
+
+test('polling announces only transitions from running to complete or failed',()=>{
+ let watched=new Map();
+ let current=[{id:'past',url:'https://example.org/old',state:'complete'}, {id:'live',url:'https://example.org/new',state:'running'}];
+ let result=observeScanOutcomes(watched,current);assert.deepEqual(result.outcomes,[]);watched=result.watched;
+ result=observeScanOutcomes(watched,[{...current[1],state:'complete'},current[0]]);
+ assert.equal(result.outcomes.length,1);assert.equal(result.outcomes[0].id,'live');
+ assert.match(outcomeMessage(result.outcomes[0]),/download the report/);
+ watched=result.watched;assert.equal(watched.size,0);
+ result=observeScanOutcomes(watched,[{...current[1],state:'complete'}]);assert.deepEqual(result.outcomes,[]);
+ watched=new Map([['quick','running']]);
+ result=observeScanOutcomes(watched,[{id:'quick',url:'https://example.org/error',state:'failed',error:'Browser timed out'}]);
+ assert.equal(result.outcomes.length,1);assert.match(outcomeMessage(result.outcomes[0]),/Browser timed out/);
+ result=observeScanOutcomes(new Map([['removed','running']]),[]);assert.equal(result.watched.size,0);
 });
