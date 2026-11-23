@@ -7,6 +7,7 @@ import {join} from 'node:path';
 import handler from '../api/index.js';
 import {database,execute,one,normalizeCloudSql} from '../src/cloud-db.js';
 import {SCAN_LEASE_MS,recoverInterruptedScans,setScanProgress,finishScan} from '../src/cloud-scan-lifecycle.js';
+import {runCloudScan} from '../src/cloud-scan-runner.js';
 const dir=mkdtempSync(join(tmpdir(),'mm-vercel-test-'));
 process.env.LIBSQL_URL='file:'+join(dir,'test.sqlite');
 process.env.ADMIN_SETUP_TOKEN='a'.repeat(64);
@@ -158,5 +159,43 @@ try{
   assert.equal(await finishScan(db,{...next,state:'failed'},{now:now+500}),false);
   assert.match(normalizeCloudSql("UPDATE audits SET body=? WHERE json_extract(body,'$.state')='running' AND EXISTS (SELECT 1 FROM scan_lease WHERE audit_id=?)"),/mm_audit\.audits.*body::jsonb->>'state'.*mm_audit\.scan_lease/);
   assert.match(normalizeCloudSql("SELECT body FROM audits WHERE json_extract(body,'$.ownerId')=?"),/body::jsonb->>'ownerId'/);
+ });
+ test('accepted scan job saves an accessible report and failed job persists retry details',async()=>{
+  const db=await database();
+  await execute(db,'DELETE FROM scan_lease');
+  const owner=await one(db,'SELECT id FROM users WHERE username=?',['owner']);
+  const login=await request('/api/auth/login?__path=api/auth/login',{method:'POST',json:{username:'owner',password:'a very long password 123'}});
+  assert.equal(login.status,200);
+  const headers={cookie:login.headers['set-cookie'].split(';')[0]};
+  const seed=async(id)=>{
+   const a={id,url:'https://example.org/',ownerId:owner.id,createdAt:new Date().toISOString(),state:'running',stage:'Starting'};
+   await execute(db,'INSERT INTO audits(id,body) VALUES(?,?)',[id,JSON.stringify(a)]);
+   await execute(db,'INSERT INTO scan_lease(id,audit_id,expires) VALUES (1,?,?)',[id,Date.now()+SCAN_LEASE_MS]);
+   return a;
+  };
+  const report=await seed('feed1111-2222-4333-8444-555566667777');
+  const stages=[];
+  await runCloudScan(db,report,[],async(url,origins,options)=>{
+   assert.equal(url,report.url);assert.deepEqual(origins,[]);
+   assert.equal(options.localTesting,false);assert.equal(options.includeLighthouse,false);
+   options.onProgress('Checking accessibility');stages.push('Checking accessibility');
+   return {url,createdAt:report.createdAt,findings:[],incomplete:[],manual:{keyboard:'not-tested'},seo:{checks:[],htmlValidation:{state:'complete',count:0,issues:[]}},lighthouse:{state:'not-requested'}};
+  },{logger:{warn:()=>{},error:()=>{}}});
+  assert.deepEqual(stages,['Checking accessibility']);
+  assert.equal(await one(db,'SELECT audit_id FROM scan_lease WHERE id=1'),null);
+  const detail=await request('/api/audits/'+report.id+'?__path=api/audits/'+report.id,{headers});
+  assert.equal(detail.status,200);assert.equal(detail.json().state,'complete');
+  const html=await request('/api/audits/'+report.id+'/report.html?__path=api/audits/'+report.id+'/report.html',{headers});
+  assert.equal(html.status,200);assert.match(html.body,/Checking accessibility|Accessibility, SEO & Lighthouse report/);
+  const fail=await seed('feed2222-2222-4333-8444-555566667777');
+  const logged=[];
+  await runCloudScan(db,fail,[],async()=>{throw new Error('Browser launch fixture failed');},{logger:{warn:()=>{},error:(...args)=>logged.push(args.join(' '))}});
+  assert.ok(logged.some(x=>x.includes('Browser launch fixture failed')));
+  const failure=await request('/api/audits/'+fail.id+'?__path=api/audits/'+fail.id,{headers});
+  assert.equal(failure.status,200);assert.equal(failure.json().state,'failed');assert.match(failure.json().error,/Browser launch fixture failed/);
+  assert.equal(await one(db,'SELECT audit_id FROM scan_lease WHERE id=1'),null);
+  const listed=await request('/api/audits?__path=api/audits',{headers});
+  assert.ok(listed.json().audits.some(a=>a.id===report.id&&a.state==='complete'));
+  assert.ok(listed.json().audits.some(a=>a.id===fail.id&&a.state==='failed'));
  });
 }finally{process.on('exit',()=>rmSync(dir,{recursive:true,force:true}));}

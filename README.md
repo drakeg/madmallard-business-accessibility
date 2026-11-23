@@ -106,3 +106,8 @@ The GitHub CI test job exercises `@sparticuz/chromium` on Linux against an **in-
 ### Scan status feedback
 
 During an authorized scan the dashboard polls audit history. A completed or failed job now produces an accessible status message with the page URL and next step; failed jobs include their stored error and suggest starting a new scan instead of retrying automatically. Previously completed history never generates spurious notifications on sign-in. This is browser-session feedback, not a push notification or server-side job scheduler.
+
+
+### Hosted scan persistence regression
+
+The cloud scan runner now has a deterministic integration test that executes the **actual** background-job persistence and lease cleanup logic against a throwaway local libSQL database. The test verifies that a successful scan's report is returned by the authenticated API and remains in history, and that a simulated browser failure produces a failed audit with an actionable stored error. The real Linux serverless Chromium scanner has a separate CI integration test. Both are required because neither test independently proves the live Vercel/Turso workflow.
