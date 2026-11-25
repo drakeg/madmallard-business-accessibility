@@ -1,5 +1,8 @@
 # Mad Mallard Business — Accessibility Workbench
 
+[![License](https://img.shields.io/github/license/drakeg/madmallard-business-accessibility)](https://github.com/drakeg/madmallard-business-accessibility/blob/main/LICENSE)
+
+
 <!-- madmallard-badges:start -->
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white) ![Docker Compose](https://img.shields.io/badge/Docker%20Compose-2496ED?logo=docker&logoColor=white) ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=white) ![Playwright](https://img.shields.io/badge/Playwright-2EAD33?logo=playwright&logoColor=white) ![Turso](https://img.shields.io/badge/Turso-4FF8D2?logo=turso&logoColor=white) ![Vercel](https://img.shields.io/badge/Vercel-000000?logo=vercel&logoColor=white) ![axe-core](https://img.shields.io/badge/axe--core-663399?logo=deque&logoColor=white)
 
